@@ -106,7 +106,7 @@ class MyApp
         QLog::log("--- SHUTDOWN TIME --- {$shutdown_time} ({$length})sec", QLog::DEBUG);
         // #ENDIF
     }
-
+	
     /**
      * 返回应用程序类的唯一实例
      *
@@ -174,9 +174,9 @@ class MyApp
         {
             // 确定控制器的类名称
             // 控制器类名称 = 模块名_Controller_名字空间_控制器名
-            if (!empty($udi[QContext::UDI_MODULE]))
+            $module_name = $udi[QContext::UDI_MODULE];
+            if ($module_name != QContext::UDI_DEFAULT_MODULE && $module_name)
             {
-                $module_name = $udi[QContext::UDI_MODULE];
                 $dir = "{$this->_app_config['MODULE_DIR']}/{$module_name}/controller";
                 $class_name = "{$module_name}_controller_";
             }
@@ -186,12 +186,13 @@ class MyApp
                 $class_name = 'controller_';
             }
 
-            if (!empty($udi[QContext::UDI_NAMESPACE]))
+            $namespace = $udi[QContext::UDI_NAMESPACE];
+            if ($namespace != QContext::UDI_DEFAULT_NAMESPACE && $namespace)
             {
-                $class_name .= $udi[QContext::UDI_NAMESPACE] . '_';
-                $dir .= '/' . $udi[QContext::UDI_NAMESPACE];
+                $class_name .= "{$namespace}_";
+                $dir .= "/{$namespace}";
             }
-            $controller_name = strtolower($udi[QContext::UDI_CONTROLLER]);
+            $controller_name = $udi[QContext::UDI_CONTROLLER];
             $class_name .= $controller_name;
             $filename = "{$controller_name}_controller.php";
 
@@ -204,6 +205,11 @@ class MyApp
                     {
                         Q::loadClassFile($filename, array($dir), $class_name);
                     }
+                }
+                catch (Q_ClassNotDefinedException $ex)
+                {
+                    $response = $this->_on_action_not_defined();
+                    break;
                 }
                 catch (Q_FileNotFoundException $ex)
                 {
@@ -306,10 +312,7 @@ class MyApp
          * 通过 QACL 组件进行权限检查
          */
         $roles = Q::normalize($roles);
-        if (!is_array($udi))
-        {
-            $udi = QContext::instance()->UDIArray($udi);
-        }
+        $udi = QContext::instance()->normalizeUDI($udi);
         $controller_acl = $this->controllerACL($udi);
 
         // 首先检查动作 ACT
@@ -342,15 +345,15 @@ class MyApp
     {
         if (!is_array($udi))
         {
-            $udi = QContext::instance()->UDIArray($udi);
+            $udi = QContext::instance()->normalizeUDI($udi);
         }
 
         $path = 'acl_global';
-        if ($udi[QContext::UDI_MODULE])
+        if ($udi[QContext::UDI_MODULE] && $udi[QContext::UDI_MODULE] != QContext::UDI_DEFAULT_MODULE)
         {
             $path .= '/' . $udi[QContext::UDI_MODULE];
         }
-        if ($udi[QContext::UDI_NAMESPACE])
+        if ($udi[QContext::UDI_NAMESPACE] && $udi[QContext::UDI_NAMESPACE] != QContext::UDI_DEFAULT_NAMESPACE)
         {
             $path .= '/' . $udi[QContext::UDI_NAMESPACE];
         }

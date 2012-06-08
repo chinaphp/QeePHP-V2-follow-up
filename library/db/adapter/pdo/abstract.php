@@ -1,5 +1,5 @@
 <?php
-// $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+// $Id: abstract.php 2425 2009-04-22 03:50:51Z yangyi $
 
 /**
  * 定义 QDB_Adapter_Pdo_Abstract 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: abstract.php 2425 2009-04-22 03:50:51Z yangyi $
  * @package database
  */
 
@@ -15,11 +15,13 @@
  * QDB_Adapter_Pdo_Abstract 类是所有 PDO 驱动的基础类
  *
  * @author yangyi.cn.gz@gmail.com
- * @version $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: abstract.php 2425 2009-04-22 03:50:51Z yangyi $
  * @package database
  */
 abstract class QDB_Adapter_Pdo_Abstract extends QDB_Adapter_Abstract
 {
+    protected $_bind_enabled = false;
+
     public function __construct($dsn, $id) {
         if (!is_array($dsn)) { $dsn = QDB::parseDSN($dsn); }
 
@@ -61,6 +63,14 @@ abstract class QDB_Adapter_Pdo_Abstract extends QDB_Adapter_Abstract
     }
 
     public function qstr($value) {
+        if (is_array($value))
+        {
+            foreach ($value as $offset => $v)
+            {
+                $value[$offset] = $this->qstr($v);
+            }
+            return $value;
+        }
         if (is_int($value) || is_float($value)) { return $value; }
         if (is_bool($value)) { return $value ? $this->_true_value : $this->_false_value; }
         if (is_null($value)) { return $this->_null_value; }
@@ -83,7 +93,7 @@ abstract class QDB_Adapter_Pdo_Abstract extends QDB_Adapter_Abstract
         if (false === $result) {
             $error = $sth->errorInfo();
             $this->_last_err = $error[2];
-            $this->_last_err_code = $error[1];
+            $this->_last_err_code = $error[0];
             $this->_has_failed_query = true;
 
             throw new QDB_Exception($sql, $this->_last_err, $this->_last_err_code);
@@ -108,7 +118,7 @@ abstract class QDB_Adapter_Pdo_Abstract extends QDB_Adapter_Abstract
  * QDB_Adapter_Pdo_Exception 异常封装所有 PDO 操作错误
  *
  * @author yangyi.cn.gz@gmail.com
- * @version $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: abstract.php 2425 2009-04-22 03:50:51Z yangyi $
  * @package database
  */
 class QDB_Adapter_Pdo_Exception extends QException {

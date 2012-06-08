@@ -1,5 +1,5 @@
 <?php
-// $Id: xcache.php 1987 2009-01-08 18:03:35Z dualface $
+// $Id: xcache.php 2560 2009-06-17 16:41:35Z dualface $
 
 /**
  * 定义 QCache_XCache 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: xcache.php 1987 2009-01-08 18:03:35Z dualface $
+ * @version $Id: xcache.php 2560 2009-06-17 16:41:35Z dualface $
  * @package cache
  */
 
@@ -15,7 +15,7 @@
  * QCache_XCache 类使用 XCache 扩展来缓存数据
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: xcache.php 1987 2009-01-08 18:03:35Z dualface $
+ * @version $Id: xcache.php 2560 2009-06-17 16:41:35Z dualface $
  * @package cache
  */
 class QCache_XCache
@@ -43,7 +43,7 @@ class QCache_XCache
 	{
         if (isset($default_policy['life_time']))
         {
-			$this->_default_policy['life_time'] = int($default_policy['life_time']);
+			$this->_default_policy['life_time'] = (int)$default_policy['life_time'];
 		}
 	}
 
@@ -56,7 +56,9 @@ class QCache_XCache
 	 */
 	function set($id, $data, array $policy = null)
 	{
-        $life_time = !isset($policy['life_time']) ? (int)$policy['life_time'] : $this->_default_policy['life_time'];
+        $life_time = isset($policy['life_time'])
+                     ? (int)$policy['life_time']
+                     : $this->_default_policy['life_time'];
         xcache_set($id, $data, $life_time);
 	}
 

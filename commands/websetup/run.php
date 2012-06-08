@@ -69,6 +69,8 @@ class WebSetup
     {
         $context = QContext::instance();
         $udi = $context->requestUDI('array');
+		$udi[QContext::UDI_ACTION] = $udi[QContext::UDI_ACTION] ? $udi[QContext::UDI_ACTION] : 'index';
+		$context->changeRequestUDI($udi);
         $dir = dirname(__FILE__) . '/app/controller';
         $class_name = 'controller_';
         $controller_name = strtolower($udi[QContext::UDI_CONTROLLER]);
@@ -96,7 +98,6 @@ class WebSetup
             // 如果是一个 QController_Forward 对象，则将请求进行转发
             $response = $this->run($response->args);
         }
-
         // 其他情况则返回执行结果
         return $response;
     }

@@ -1,5 +1,5 @@
 <?php
-// $Id: file.php 1987 2009-01-08 18:03:35Z dualface $
+// $Id: file.php 2543 2009-06-07 07:07:00Z dualface $
 
 /**
  * 定义 QCache_File 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: file.php 1987 2009-01-08 18:03:35Z dualface $
+ * @version $Id: file.php 2543 2009-06-07 07:07:00Z dualface $
  * @package cache
  */
 
@@ -15,7 +15,7 @@
  * QCache_File 类提供以文件系统来缓存数据的服务
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: file.php 1987 2009-01-08 18:03:35Z dualface $
+ * @version $Id: file.php 2543 2009-06-07 07:07:00Z dualface $
  * @package cache
  */
 class QCache_File
@@ -168,7 +168,7 @@ class QCache_File
 			$refresh_time = time();
 		}
 
-		$path = $this->_path($id, $policy);
+		$path = $this->_path($id, $policy, false);
 		clearstatcache();
 		if (!file_exists($path)) { return false; }
 
@@ -264,7 +264,7 @@ class QCache_File
 	 */
 	function remove($id, array $policy = null)
 	{
-		$path = $this->_path($id, $this->_policy($policy));
+		$path = $this->_path($id, $this->_policy($policy), false);
 		if (is_file($path)) { unlink($path); }
 	}
 
@@ -272,11 +272,12 @@ class QCache_File
 	 * 确定缓存文件名，并创建需要的次级缓存目录
 	 *
 	 * @param string $id
-	 * @param array $policy
+     * @param array $policy
+     * @param boolean $mkdirs
 	 *
 	 * @return string
 	 */
-	protected function _path($id, array $policy)
+	protected function _path($id, array $policy, $mkdirs = true)
 	{
 		if ($policy['encoding_filename'])
         {
@@ -296,7 +297,7 @@ class QCache_File
 
         $root_dir .= DIRECTORY_SEPARATOR;
 
-		if ($policy['cache_dir_depth'] > 0)
+		if ($policy['cache_dir_depth'] > 0 && $mkdirs)
         {
             $hash = md5($filename);
             $root_dir .= 'cache_';
@@ -337,7 +338,6 @@ class QCache_File
 			return md5($data);
 		case 'crc32':
 			return sprintf('% 32d', crc32($data));
-		case 'strlen':
 		default:
 			return sprintf('% 32d', strlen($data));
 		}

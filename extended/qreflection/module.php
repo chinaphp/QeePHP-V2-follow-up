@@ -141,7 +141,7 @@ class QReflection_Module
     {
         if (is_null($this->_controllers_name))
         {
-            $dir = rtrim($this->_module_dir, '/\\') . '/controller';
+            $dir = rtrim($this->_module_dir, '/\\') . DS . 'controller';
             $this->_controllers_name = array();
             $files = Helper_FileSys::recursionGlob($dir, '*_controller.php');
             sort($files, SORT_STRING);
@@ -230,7 +230,7 @@ class QReflection_Module
     {
         if (is_null($this->_models_name))
         {
-            $dir = rtrim($this->_module_dir, '/\\') . '/model';
+            $dir = rtrim($this->_module_dir, '/\\') . DS . 'model';
             $files = Helper_FileSys::recursionGlob($dir, '*.php');
             $this->_models_name = array();
             foreach ($files as $file)

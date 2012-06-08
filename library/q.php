@@ -1,5 +1,5 @@
 <?php
-// $Id: q.php 2050 2009-01-12 08:55:32Z dualface $
+// $Id: q.php 2549 2009-06-10 09:49:17Z jerry $
 
 /**
  * 定义 QeePHP 核心类，并初始化框架基本设置
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: q.php 2050 2009-01-12 08:55:32Z dualface $
+ * @version $Id: q.php 2549 2009-06-10 09:49:17Z jerry $
  * @package core
  */
 
@@ -44,7 +44,7 @@ if (empty($G_CLASS_FILES))
  * -  基本工具方法。
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: q.php 2050 2009-01-12 08:55:32Z dualface $
+ * @version $Id: q.php 2549 2009-06-10 09:49:17Z jerry $
  * @package core
  */
 class Q
@@ -74,6 +74,13 @@ class Q
     private static $_class_path = array();
 
     /**
+     * 类搜索路径的选项
+     *
+     * @var array
+     */
+    private static $_class_path_options = array();
+
+    /**
      * 应用程序设置
      *
      * @var array
@@ -96,16 +103,16 @@ class Q
      * $option 参数指定要获取的设置名。
      * 如果设置中找不到指定的选项，则返回由 $default 参数指定的值。
      *
-     * /---code php
+     * @code php
      * $option_value = Q::ini('my_option');
-     * \---
+     * @endcode
      *
      * 对于层次化的设置信息，可以通过在 $option 中使用“/”符号来指定。
      *
      * 例如有一个名为 option_group 的设置项，其中包含三个子项目。
      * 现在要查询其中的 my_option 设置项的内容。
      *
-     * /---code php
+     * @code php
      * // +--- option_group
      * //   +-- my_option  = this is my_option
      * //   +-- my_option2 = this is my_option2
@@ -114,16 +121,16 @@ class Q
      * // 查询 option_group 设置组里面的 my_option 项
      * // 将会显示 this is my_option
      * echo Q::ini('option_group/my_option');
-     * \---
+     * @endcode
      *
      * 要读取更深层次的设置项，可以使用更多的“/”符号，但太多层次会导致读取速度变慢。
      *
      * 如果要获得所有设置项的内容，将 $option 参数指定为 '/' 即可：
      *
-     * /---code php
+     * @code php
      * // 获取所有设置项的内容
      * $all = Q::ini('/');
-     * \---
+     * @endcode
      *
      * @param string $option 要获取设置项的名称
      * @param mixed $default 当设置不存在时要返回的设置默认值
@@ -157,15 +164,15 @@ class Q
      * 当 $option 参数是字符串时，$option 指定了要修改的设置项。
      * $data 则是要为该设置项指定的新数据。
      *
-     * /---code php
+     * @code php
      * // 修改一个设置项
      * Q::changeIni('option_group/my_option2', 'new value');
-     * \---
+     * @endcode
      *
      * 如果 $option 是一个数组，则假定要修改多个设置项。
      * 那么 $option 则是一个由设置项名称和设置值组成的名值对，或者是一个嵌套数组。
      *
-     * /---code php
+     * @code php
      * // 假设已有的设置为
      * // +--- option_1 = old value
      * // +--- option_group
@@ -188,7 +195,7 @@ class Q
      * //   +-- option1 = old value
      * //   +-- option2 = new value
      * //   \-- option3 = old value
-     * \---
+     * @endcode
      *
      * 上述代码展示了 Q::changeIni() 的一个重要特性：保持已有设置的层次结构。
      *
@@ -252,7 +259,7 @@ class Q
      * 但是 Q::replaceIni() 不会保持已有设置的层次结构，
      * 而是直接替换到指定的设置项及其子项目。
      *
-     * /---code php
+     * @code php
      * // 假设已有的设置为
      * // +--- option_1 = old value
      * // +--- option_group
@@ -273,7 +280,7 @@ class Q
      * // +--- option_2 = value 2
      * // +--- option_group
      * //   +-- option2 = new value
-     * \---
+     * @endcode
      *
      * 从上述代码的执行结果可以看出 Q::replaceIni() 和 Q::changeIni() 的重要区别。
      *
@@ -335,16 +342,16 @@ class Q
     /**
      * 载入指定类的定义文件，如果载入失败抛出异常
      *
-     * /---code php
+     * @code php
      * Q::loadClass('Table_Posts');
-     * \---
+     * @endcode
      *
      * $dirs 参数可以是一个以 PATH_SEPARATOR 常量分隔的字符串，
      * 也可以是一个包含多个目录名的数组。
      *
-     * /---code php
+     * @code php
      * Q::loadClass('Table_Posts', array('/www/mysite/app', '/www/mysite/lib'));
-     * \---
+     * @endcode
      *
      * @param string $class_name 要载入的类
      * @param string|array $dirs 指定载入类的搜索路径
@@ -359,11 +366,11 @@ class Q
         }
 
         global $G_CLASS_FILES;
-        $class_name = strtolower($class_name);
-        if (isset($G_CLASS_FILES[$class_name]))
+        $class_name_l = strtolower($class_name);
+        if (isset($G_CLASS_FILES[$class_name_l]))
         {
-            require Q_DIR . DS . $G_CLASS_FILES[$class_name];
-            return $class_name;
+            require Q_DIR . DS . $G_CLASS_FILES[$class_name_l];
+            return $class_name_l;
         }
 
         $filename = str_replace('_', DS, $class_name);
@@ -374,45 +381,20 @@ class Q
             {
 	            if (!is_array($dirs))
                 {
-    				if (empty($dirs))
-                    {
-                        $dirs = array();
-                    }
-                    else
-                    {
-                        $dirs = explode(PATH_SEPARATOR, $dirs);
-                    }
-                }
-                foreach ($dirs as $offset => $dir)
-                {
-                    $dirs[$offset] = $dir . DS . $dirname;
+                    $dirs = explode(PATH_SEPARATOR, $dirs);
                 }
             }
             else
             {
-                $dirs = array();
-                foreach (self::$_class_path as $dir)
-                {
-                    if ($dir == '.')
-                    {
-                        $dirs[] = $dirname;
-                    }
-                    else
-                    {
-                        $dir = rtrim($dir, '\\/');
-                        $dirs[] = $dir . DS . $dirname;
-                    }
-                }
+                $dirs = self::$_class_path;
             }
             $filename = basename($filename) . '.php';
+            return self::loadClassFile($filename, $dirs, $class_name, $dirname, $throw);
         }
         else
         {
-            $dirs = self::$_class_path;
-            $filename .= '.php';
+            return self::loadClassFile("{$filename}.php", self::$_class_path, $class_name, '', $throw);
         }
-
-        return self::loadClassFile($filename, $dirs, $class_name, $throw);
     }
 
     /**
@@ -426,19 +408,35 @@ class Q
      * 因此在用 Q::import() 添加 Vendor_Smarty_Adapter 类的搜索路径时，
      * 只能添加 vendor/smarty/adapter.php 的父目录。
      *
-     * /---code php
+     * @code php
      * Q::import('/www/app');
      * Q::loadClass('Vendor_Smarty_Adapter');
      * // 实际载入的文件是 /www/app/vendor/smarty/adapter.php
-     * \---
+     * @endcode
+     *
+     * 由于 QeePHP 的规范是文件名全小写，因此要载入文件名存在大小写区分的第三方库时，
+     * 应该指定 import() 方法的第二个参数。
+     *
+     * @code php
+     * Q::import('/www/app/vendor');
+     * Q::loadClass('Zend_Mail');
+     * // 实际载入的文件是 /www/app/vendor/Zend/Mail.php
+     * @endcode
      *
      * @param string $dir 要添加的搜索路径
+     * @param boolean $case_sensitive 在该路径中查找类文件时是否区分文件名大小写
      */
-    static function import($dir)
+    static function import($dir, $case_sensitive = false)
     {
-        if (!isset(self::$_class_path[$dir]))
+        $real_dir = realpath($dir);
+        if ($real_dir)
         {
-            self::$_class_path[$dir] = $dir;
+            $dir = rtrim($real_dir, '/\\');
+            if (!isset(self::$_class_path[$dir]))
+            {
+                self::$_class_path[$dir] = $dir;
+                self::$_class_path_options[$dir] = $case_sensitive;
+            }
         }
     }
 
@@ -450,23 +448,52 @@ class Q
      *
      * 如果没有找到指定类，则抛出异常。
      *
-     * /---code php
+     * @code php
      * Q::loadClassFile('Smarty.class.php', $dirs, 'Smarty');
-     * \---
+     * @endcode
      *
      * @param string $filename 要载入文件的文件名（含扩展名）
      * @param string|array $dirs 文件的搜索路径
      * @param string $class_name 要检查的类
+     * @param string $dirname 是否在查找文件时添加目录前缀
      * @param string $throw 是否在找不到类时抛出异常
      */
-    static function loadClassFile($filename, $dirs, $class_name, $throw = true)
+    static function loadClassFile($filename, $dirs, $class_name, $dirname = '', $throw = true)
     {
-        Q::loadFile($filename, $dirs, $throw);
+        if (!is_array($dirs))
+        {
+            $dirs = explode(PATH_SEPARATOR, $dirs);
+        }
+        if ($dirname)
+        {
+            $filename = rtrim($dirname, '/\\') . DS . $filename;
+        }
+        $filename_l = strtolower($filename);
+
+        foreach ($dirs as $dir)
+        {
+            if (isset(self::$_class_path[$dir]))
+            {
+                $path = $dir . DS . (self::$_class_path_options[$dir] ? $filename : $filename_l);
+            }
+            else
+            {
+                $path = rtrim($dir, '/\\') . DS . $filename;
+            }
+
+            if (is_file($path))
+            {
+                require $path;
+                break;
+            }
+        }
+
+        // 载入文件后判断指定的类或接口是否已经定义
         if (!class_exists($class_name, false) && ! interface_exists($class_name, false))
         {
             if ($throw)
             {
-                throw new Q_ClassNotDefinedException($class_name, $filename);
+                throw new Q_ClassNotDefinedException($class_name, $path);
             }
             return false;
         }
@@ -487,9 +514,9 @@ class Q
      *   <li>文件无法读取时将抛出异常。</li>
      * </ul>
      *
-     * /---code php
+     * @code php
      * Q::loadFile('my_file.php', $dirs);
-     * \---
+     * @endcode
      *
      * @param string $filename 要载入文件的文件名（含扩展名）
      * @param array $dirs 文件的搜索路径
@@ -537,7 +564,7 @@ class Q
      *
      * 使用 Q::singleton() 的好处在于多次使用同一个对象时不需要反复构造对象。
      *
-     * /---code php
+     * @code php
      * // 在位置 A 处使用对象 My_Object
      * $obj = Q::singleton('My_Object');
      * ...
@@ -545,7 +572,7 @@ class Q
      * // 在位置 B 处使用对象 My_Object
      * $obj2 = Q::singleton('My_Object');
      * // $obj 和 $obj2 都是指向同一个对象实例，避免了多次构造，提高了性能
-     * \---
+     * @endcode
      *
      * @param string $class_name 要获取的对象的类名字
      *
@@ -553,9 +580,10 @@ class Q
      */
     static function singleton($class_name)
     {
-        if (isset(self::$_objects[$class_name]))
+        $key = strtolower($class_name);
+        if (isset(self::$_objects[$key]))
         {
-            return self::$_objects[$class_name];
+            return self::$_objects[$key];
         }
         self::loadClass($class_name);
         return self::register(new $class_name(), $class_name);
@@ -567,13 +595,13 @@ class Q
      * 开发者可以将一个对象登记到对象注册表中，以便在应用程序其他位置使用 Q::registry() 来查询该对象。
      * 登记时，如果没有为对象指定一个名字，则以对象的类名称作为登记名。
      *
-     * /---code php
+     * @code php
      * // 注册一个对象
      * Q::register(new MyObject());
      * .....
      * // 稍后取出对象
      * $obj = Q::regitry('MyObject');
-     * \---
+     * @endcode
      *
      * 当 $persistent 参数为 true 时，对象将被放入持久存储区。
      * 在下一次执行脚本时，可以通过 Q::registry() 取出放入持久存储区的对象，并且无需重新构造对象。
@@ -584,13 +612,13 @@ class Q
      * 使用哪一种持久化存储区来保存对象，由设置 object_persistent_provier 决定。
      * 该设置指定一个提供持久化服务的对象名。
      *
-     * /---code php
+     * @code php
      * if (!Q::isRegistered('MyObject'))
      * {
      *      Q::registry(new MyObject(), 'MyObject', true);
      * }
      * $app = Q::registry('MyObject');
-     * \---
+     * @endcode
      *
      * @param object $obj 要登记的对象
      * @param string $name 用什么名字登记
@@ -612,6 +640,7 @@ class Q
         {
             $name = get_class($obj);
         }
+        $name = strtolower($name);
         self::$_objects[$name] = $obj;
         return $obj;
     }
@@ -619,13 +648,13 @@ class Q
     /**
      * 查找指定名字的对象实例，如果指定名字的对象不存在则抛出异常
      *
-     * /---code php
+     * @code php
      * // 注册一个对象
      * Q::register(new MyObject(), 'obj1');
      * .....
      * // 稍后取出对象
      * $obj = Q::regitry('obj1');
-     * \---
+     * @endcode
      *
      * @param string $name 要查找对象的名字
      *
@@ -633,6 +662,7 @@ class Q
      */
     static function registry($name)
     {
+        $name = strtolower($name);
         if (isset(self::$_objects[$name]))
         {
             return self::$_objects[$name];
@@ -650,6 +680,7 @@ class Q
      */
     static function isRegistered($name)
     {
+        $name = strtolower($name);
         return isset(self::$_objects[$name]);
     }
 
@@ -673,14 +704,14 @@ class Q
      *
      * $backend_class 用于指定要使用的缓存服务对象类名称。例如 QCache_File、QCache_APC 等。
      *
-     * /---code php
+     * @code php
      * $data = Q::cache($cache_id);
      * if ($data === false)
      * {
      *     $data = ....
      *     Q::writeCache($cache_id, $data);
      * }
-     * \---
+     * @endcode
      *
      * @param string $id 缓存的 ID
      * @param array $policy 缓存策略
@@ -745,9 +776,9 @@ class Q
      * 通常，失效的缓存数据无需清理。但有时候，希望在某些操作完成后立即清除缓存。
      * 例如更新数据库记录后，希望删除该记录的缓存文件，以便在下一次读取缓存时重新生成缓存文件。
      *
-     * /---code php
+     * @code php
      * Q::cleanCache($cache_id);
-     * \---
+     * @endcode
      *
      * @param string $id 缓存的 ID
      * @param array $policy 缓存策略
@@ -780,7 +811,7 @@ class Q
      *
      * 该方法的主要用途是将诸如：“item1, item2, item3” 这样的字符串转换为数组。
      *
-     * /---code php
+     * @code php
      * $input = 'item1, item2, item3';
      * $output = Q::normalize($input);
      * // $output 现在是一个数组，结果如下：
@@ -793,7 +824,7 @@ class Q
      * $input = 'item1|item2|item3';
      * // 指定使用什么字符作为分割符
      * $output = Q::normalize($input, '|');
-     * \---
+     * @endcode
      *
      * @param array|string $input 要格式化的字符串或数组
      * @param string $delimiter 按照什么字符进行分割
@@ -819,13 +850,13 @@ class Q
      * @param string $id 控件ID
      * @param array $attrs 要传递给控件的附加属性
      *
+     *
      * @return QUI_Control_Abstract 创建的用户界面控件对象
      */
-    static function control($type, $id = null, array $attrs = null)
+    static function control($type, $id = null, $attrs = array())
     {
-        $id = (empty($id)) ? strtolower($type) : strtolower($id);
-        if (!is_array($attrs)) $attrs = array();
-        $class_name = 'Control_' . ucfirst(strtolower($type));
+        $id = empty($id) ? strtolower($type) : strtolower($id);
+        $class_name = "Control_{$type}";
         return new $class_name($id, $attrs);
     }
 
@@ -919,25 +950,20 @@ function dump($vars, $label = null, $return = false)
  *
  * url() 方法的参数比较复杂，请参考 QContext::url() 方法的详细说明。
  *
- * @param string $controller_name
- * @param string|array $action_name
- * @param array $params
- * @param string $namespace
- * @param string $module_name
- * @param string $route_name
+ * @param string $udi UDI 字符串
+ * @param array|string $params 附加参数数组
+ * @param string $route_name 路由名
+ * @param array $opts 控制如何生成 URL 的选项
  *
- * @return string
+ * @return string 生成的 URL 地址
  */
-function url($controller_name = null, $action_name = null, $params = null,
-                 $namespace = null, $module_name = null, $route_name = null)
+function url($udi, $params = null, $route_name = null, array $opts = null)
 {
-    return QContext::instance()->url($controller_name, $action_name, $params,
-                                     $namespace, $module_name, $route_name);
+    return QContext::instance()->url($udi, $params, $route_name, $opts);
 }
 
 /**
  * 设置对象的自动载入
  */
-spl_autoload_register(array('Q', 'autoload'));
-
+Q::registerAutoload();
 

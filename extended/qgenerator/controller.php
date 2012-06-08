@@ -25,8 +25,17 @@ class QGenerator_Controller extends QGenerator_Abstract
         {
             $class_name = "Controller_{$controller_name}";
         }
+
+        $module_name = $this->_module->moduleName();
+
         $class_name = $this->_normalizeClassName($class_name);
         $path = $this->_classFilePath($this->_module->moduleDir(), $class_name, '_controller.php');
+
+
+        if($module_name && $module_name != QReflection_Application::DEFAULT_MODULE_NAME)
+        {
+            $class_name = ucfirst($module_name) . "_{$class_name}";
+        }
 
         $this->_logClean();
         if (file_exists($path))

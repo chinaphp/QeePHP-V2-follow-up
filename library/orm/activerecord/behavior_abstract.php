@@ -1,5 +1,5 @@
 <?php
-// $Id: behavior_abstract.php 2006 2009-01-08 18:48:35Z dualface $
+// $Id: behavior_abstract.php 2409 2009-04-10 10:02:31Z jerry $
 
 /**
  * 定义 QDB_ActiveRecord_Behavior_Abstract 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: behavior_abstract.php 2006 2009-01-08 18:48:35Z dualface $
+ * @version $Id: behavior_abstract.php 2409 2009-04-10 10:02:31Z jerry $
  * @package orm
  */
 
@@ -15,7 +15,7 @@
  * QDB_ActiveRecord_Behavior_Abstract 抽象类是所有行为插件的基础类
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: behavior_abstract.php 2006 2009-01-08 18:48:35Z dualface $
+ * @version $Id: behavior_abstract.php 2409 2009-04-10 10:02:31Z jerry $
  * @package orm
  */
 abstract class QDB_ActiveRecord_Behavior_Abstract implements QDB_ActiveRecord_Callbacks
@@ -87,6 +87,27 @@ abstract class QDB_ActiveRecord_Behavior_Abstract implements QDB_ActiveRecord_Ca
             }
         }
         $this->bind();
+    }
+
+    /**
+     * 格式化配置
+     * FIXED!
+     */
+    static function normalizeConfig($config)
+    {
+        $ret = array();
+        foreach ($config as $key => $value)
+        {
+            if (is_int($key) && !is_array($value))
+            {
+                $ret[$value] = array();
+            }
+            else
+            {
+                $ret[$key] = $value;
+            }
+        }
+        return $ret;
     }
 
     /**
@@ -183,7 +204,7 @@ abstract class QDB_ActiveRecord_Behavior_Abstract implements QDB_ActiveRecord_Ca
      */
     protected function _setPropSetter($prop_name, $callback, $custom_parameters = array())
     {
-        $this->_meta->setPropGetter($prop_name, $callback, $custom_parameters);
+        $this->_meta->setPropSetter($prop_name, $callback, $custom_parameters);
         $this->_setters[] = $prop_name;
     }
 }

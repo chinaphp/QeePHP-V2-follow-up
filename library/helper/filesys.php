@@ -1,5 +1,5 @@
 <?php
-// $Id: filesys.php 1985 2009-01-08 17:51:34Z dualface $
+// $Id: filesys.php 2212 2009-02-06 00:51:32Z dualface $
 
 /**
  * 定义 Helper_Filesys 类
@@ -7,17 +7,17 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: filesys.php 1985 2009-01-08 17:51:34Z dualface $
+ * @version $Id: filesys.php 2212 2009-02-06 00:51:32Z dualface $
  * @package helper
  */
 
 /**
- * Helper_Filesys 类提供了一组简化文件系统操作的方法 
+ * Helper_Filesys 类提供了一组简化文件系统操作的方法
  *
  * 部分方法来自 Yii Framework 框架的 CFileHelper 类，并作了修改。
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: filesys.php 1985 2009-01-08 17:51:34Z dualface $
+ * @version $Id: filesys.php 2212 2009-02-06 00:51:32Z dualface $
  * @package helper
  */
 abstract class Helper_Filesys
@@ -39,13 +39,13 @@ abstract class Helper_Filesys
         $dh = opendir($dir);
         if (!$dh) return $files;
 
-        $items = glob($dir . $pattern);
+        $items = (array)glob($dir . $pattern);
         foreach ($items as $item)
         {
             if (is_file($item)) $files[] = $item;
         }
 
-        while ($file = readdir($dh))
+        while (($file = readdir($dh)))
         {
             if ($file == '.' || $file == '..') continue;
 
@@ -111,9 +111,9 @@ abstract class Helper_Filesys
         }
 
         // 遍历目录，删除所有文件和子目录
-        if(false !== ($dh = opendir($dir))) 
+        if(false !== ($dh = opendir($dir)))
         {
-            while(false !== ($file = readdir($dh))) 
+            while(false !== ($file = readdir($dh)))
             {
                 if($file == '.' || $file == '..')
                 {
@@ -121,11 +121,11 @@ abstract class Helper_Filesys
                 }
 
                 $path = $dir . DIRECTORY_SEPARATOR . $file;
-                if (is_dir($path)) 
+                if (is_dir($path))
                 {
                     self::rmdirs($path);
-                } 
-                else 
+                }
+                else
                 {
                     unlink($path);
                 }
@@ -136,7 +136,7 @@ abstract class Helper_Filesys
                 throw new Q_RemoveDirFailedException($dir);
             }
         }
-        else 
+        else
         {
             throw new Q_RemoveDirFailedException($dir);
         }
@@ -169,7 +169,7 @@ abstract class Helper_Filesys
 	 */
 	static function copyDir($src, $dst, $options=array())
     {
-        $extnames = !empty($options['extnames']) 
+        $extnames = !empty($options['extnames'])
                     ? Q::normalize($options['extnames'])
                     : array();
         foreach ($extnames as $offset => $extname)
@@ -223,7 +223,7 @@ abstract class Helper_Filesys
 	 */
 	static function findFiles($dir, $options=array())
     {
-        $extnames = !empty($options['extnames']) 
+        $extnames = !empty($options['extnames'])
                     ? Q::normalize($options['extnames'])
                     : array();
         foreach ($extnames as $offset => $extname)
@@ -253,7 +253,7 @@ abstract class Helper_Filesys
 		@mkdir($dst);
 		@chmod($dst,0777);
 		$folder = opendir($src);
-		while ($file = readdir($folder))
+		while (($file = readdir($folder)))
         {
             if ($file{0} == '.') continue;
 			$path = $src . DIRECTORY_SEPARATOR . $file;
@@ -266,7 +266,7 @@ abstract class Helper_Filesys
                 }
                 elseif($level)
                 {
-                    self::_copyDirectoryRecursive($path, $dst . DIRECTORY_SEPARATOR . $file, 
+                    self::_copyDirectoryRecursive($path, $dst . DIRECTORY_SEPARATOR . $file,
                         $base . '/' . $file, $extnames, $excludes, $level - 1);
                 }
 			}
@@ -286,12 +286,12 @@ abstract class Helper_Filesys
      *
      * @return 包含有效文件名的数组
 	 */
-    private static function _findFilesRecursive($dir, $base, $extnames, 
+    private static function _findFilesRecursive($dir, $base, $extnames,
                                                 $excludes, $level)
 	{
 		$list = array();
 		$handle = opendir($dir);
-		while($file = readdir($handle))
+		while(($file = readdir($handle)))
 		{
 			if($file == '.' || $file == '..') continue;
             $path = $dir . DIRECTORY_SEPARATOR . $file;
@@ -305,7 +305,7 @@ abstract class Helper_Filesys
                 }
                 elseif ($level)
                 {
-                    $list = array_merge($list, self::_findFilesRecursive($path, 
+                    $list = array_merge($list, self::_findFilesRecursive($path,
                             $base . '/' . $file, $extnames, $excludes, $level - 1));
                 }
             }
@@ -325,7 +325,7 @@ abstract class Helper_Filesys
      *
 	 * @return boolean 该文件是否通过验证
 	 */
-    private static function _validatePath($base, $file, $is_file, 
+    private static function _validatePath($base, $file, $is_file,
                                           array $extnames, array $excludes)
     {
         $test = ltrim(str_replace('\\', '/', "/{$base}/{$file}"), '/');

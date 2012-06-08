@@ -198,7 +198,7 @@ class Helper_Uploader_File
 		}
 
         $this->_file['full_path'] = $this->_file['tmp_name'];
-        $this->_file['is_moved'] = false;
+        $this->_file['is_moved'] = true;
         $this->_name = $name;
 	}
 

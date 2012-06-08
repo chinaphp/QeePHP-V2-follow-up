@@ -1,5 +1,5 @@
 <?php
-// $Id: dom_element.php 2017 2009-01-08 19:09:51Z dualface $
+// $Id: dom_element.php 2462 2009-05-06 06:42:45Z yangyi $
 
 /**
  * 定义 QDom_Element 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: dom_element.php 2017 2009-01-08 19:09:51Z dualface $
+ * @version $Id: dom_element.php 2462 2009-05-06 06:42:45Z yangyi $
  * @package helper
  */
 
@@ -15,10 +15,10 @@
  * QDom_Element 类对PHP5自带的DOMElement进行了自己的扩展
  *
  * @author yangyi.cn.gz@gmail.com
- * @version $Id: dom_element.php 2017 2009-01-08 19:09:51Z dualface $
+ * @version $Id: dom_element.php 2462 2009-05-06 06:42:45Z yangyi $
  * @package helper
  */
-class QDom_Element extends DOMElement
+class QDom_Element extends DOMElement implements ArrayAccess
 {
     /**
      * 魔法方法，获取attribute
@@ -55,6 +55,53 @@ class QDom_Element extends DOMElement
      * @param   string  $key
      */
     public function __unset($key) {
+        $this->removeAttribute($key);
+    }
+
+    /**
+     * 实现ArrayAccess接口
+     * 
+     * @param mixed $key 
+     * @access public
+     * @return void
+     */
+    public function offsetExists($key) {
+        return $this->hasAttribute($key);
+    }
+
+    /**
+     * 实现ArrayAccess接口
+     * 
+     * @param mixed $key 
+     * @param mixed $value 
+     * @access public
+     * @return void
+     */
+    public function offsetSet($key, $value) {
+        $this->setAttribute($key, $value);
+    }
+
+    /**
+     * 实现ArrayAccess接口
+     * 
+     * @param mixed $key 
+     * @access public
+     * @return void
+     */
+    public function offsetGet($key) {
+        if ($this->hasAttribute($key)) return $this->getAttribute($key);
+
+        throw new QDom_Exception('Attribute ['. $key .'] not exists!');
+    }
+
+    /**
+     * 实现ArrayAccess接口
+     * 
+     * @param mixed $key 
+     * @access public
+     * @return void
+     */
+    public function offsetUnset($key) {
         $this->removeAttribute($key);
     }
 

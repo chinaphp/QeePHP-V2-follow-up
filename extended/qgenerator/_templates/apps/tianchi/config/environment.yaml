@@ -1,3 +1,5 @@
+# <?php die(); ?>
+
 ## 注意：书写时，缩进不能使用 Tab，必须使用空格
 
 #############################
@@ -52,5 +54,5 @@ i18n_response_charset:          utf-8
 i18n_multi_languages:           false
 
 # 默认的时区设置
-l10n_default_timezone:          Asia/ChongQing
+l10n_default_timezone:          Asia/Shanghai
 

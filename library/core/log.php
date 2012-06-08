@@ -1,5 +1,5 @@
 <?php
-// $Id: log.php 2008 2009-01-08 18:49:30Z dualface $
+// $Id: log.php 2340 2009-03-25 17:00:26Z dualface $
 
 /**
  * 定义 QLog 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: log.php 2008 2009-01-08 18:49:30Z dualface $
+ * @version $Id: log.php 2340 2009-03-25 17:00:26Z dualface $
  * @package core
  */
 
@@ -15,7 +15,7 @@
  * 类 QLog 实现了一个简单的日志记录服务
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: log.php 2008 2009-01-08 18:49:30Z dualface $
+ * @version $Id: log.php 2340 2009-03-25 17:00:26Z dualface $
  * @package core
  */
 class QLog
@@ -90,11 +90,19 @@ class QLog
      */
     protected $_writeable = false;
 
+    /**
+     * 指示是否已经调用了析构函数
+     *
+     * @var boolean
+     */
+    private $_destruct = false;
+
 	/**
 	 * 析构函数
 	 */
 	function __destruct()
 	{
+        $this->_destruct = true;
 		$this->flush();
 	}
 
@@ -124,15 +132,12 @@ class QLog
 	 */
 	function append($msg, $type = self::DEBUG)
 	{
-		if (!isset($this->_priorities[$type]))
-		{
-			return;
-		}
+		if (!isset($this->_priorities[$type])) return;
 
         $this->_log[] = array(time(), $msg, $type);
         $this->_cached_size += strlen($msg);
 
-        if ($this->_writeable && $this->_cached_size >= $this->_cache_chunk_size)
+        if ($this->_cached_size >= $this->_cache_chunk_size)
         {
             $this->flush();
         }
@@ -143,52 +148,51 @@ class QLog
      */
     function flush()
     {
-        $log_writer_dir = Q::ini('log_writer_dir');
-        if (empty($this->_log) || empty($log_writer_dir))
+        if (empty($this->_log)) return;
+
+        // 更新日志记录优先级
+        $keys = Q::normalize(Q::ini('log_priorities'));
+        $arr = array();
+        foreach ($keys as $key)
         {
-            return;
+            if (!isset($this->_priorities[$key]))
+            {
+                continue;
+            }
+            $arr[$key] = true;
+        }
+        $this->_priorities = $arr;
+
+        // 确定日志写入目录
+        $dir = realpath(Q::ini('log_writer_dir'));
+        if ($dir === false || empty($dir))
+        {
+            $dir = realpath(Q::ini('runtime_cache_dir'));
+            if ($dir === false || empty($dir))
+            {
+                // LC_MSG: 指定的日志文件保存目录不存在 "%s".
+                if ($this->_destruct)
+                {
+                    return;
+                }
+                else
+                {
+                    throw new QLog_Exception(__('指定的日志文件保存目录不存在 "%s".', Q::ini('log_writer_dir')));
+                }
+            }
         }
 
-        if (!$this->_writeable)
+        $filename = Q::ini('log_writer_filename');
+        $this->_filename = rtrim($dir, '/\\') . DS . $filename;
+        $chunk_size = intval(Q::ini('log_cache_chunk_size'));
+        if ($chunk_size < 1)
         {
-        	$keys = Q::normalize(Q::ini('log_priorities'));
-        	$arr = array();
-        	foreach ($keys as $key)
-        	{
-        		if (!isset($this->_priorities[$key]))
-        		{
-        			continue;
-        		}
-        		$arr[$key] = true;
-        	}
-        	$this->_priorities = $arr;
-
-	        $dir = realpath(Q::ini('log_writer_dir'));
-	        if (empty($dir))
-	        {
-	            $dir = realpath(Q::ini('runtime_cache_dir'));
-	            if (empty($dir))
-	            {
-	                // LC_MSG: 指定的日志文件保存目录不存在 "%s".
-	                throw new QLog_Exception(__('指定的日志文件保存目录不存在 "%s".', Q::ini('log_writer_dir')));
-	            }
-	        }
-
-	        $filename = Q::ini('log_writer_filename');
-	        $this->_filename = rtrim($dir, '/\\') . DS . $filename;
-	        $chunk_size = intval(Q::ini('log_cache_chunk_size'));
-	        if ($chunk_size < 1)
-	        {
-	        	$chunk_size = 64;
-	        }
-	        $this->_cache_chunk_size = $chunk_size * 1024;
-	        $this->_writeable = true;
-
-	        #IFDEF DEBUG
-	        $this->append('QLog switch to wriable mode.', self::DEBUG);
-	        #ENDIF
+            $chunk_size = 64;
         }
+        $this->_cache_chunk_size = $chunk_size * 1024;
+        $this->_writeable = true;
 
+        // 写入日志
         $string = '';
         foreach ($this->_log as $offset => $item)
         {
@@ -214,6 +218,7 @@ class QLog
             }
         }
 
+        unset($this->_log);
         $this->_log = array();
         $this->_cached_size = 0;
     }

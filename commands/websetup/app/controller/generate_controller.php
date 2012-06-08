@@ -58,7 +58,7 @@ class Controller_Generate extends Controller_Abstract
 
         try
         {
-            $tables = @$this->_getDBO()->metaTables();
+            $tables = $this->_getDBO()->metaTables();
             if (!empty($tables))
             {
                 $tables = array_combine($tables, $tables);
@@ -120,6 +120,18 @@ class Controller_Generate extends Controller_Abstract
     protected function _getDBO()
     {
         $dsn = Q::ini('managed_app_ini/db_dsn_pool/default');
+
+        if (!empty($dsn['_use']))
+        {
+            $used_dsn = Q::ini("managed_app_ini/db_dsn_pool/{$dsn['_use']}");
+            $dsn = array_merge($dsn, $used_dsn);
+            unset($dsn['_use']);
+            if (!empty($dsn))
+            {
+                Q::replaceIni("managed_app_ini/db_dsn_pool/default", $dsn);
+            }
+        }
+
         $dbtype = $dsn['driver'];
         $objid = "dbo_{$dbtype}_" .  md5(serialize($dsn));
         $class_name = 'QDB_Adapter_' . ucfirst($dbtype);

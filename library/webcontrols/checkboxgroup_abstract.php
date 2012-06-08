@@ -1,5 +1,5 @@
 <?php
-// $Id: checkboxgroup_abstract.php 2014 2009-01-08 19:01:29Z dualface $
+// $Id: checkboxgroup_abstract.php 2283 2009-03-04 14:33:21Z lonestone $
 
 /**
  * 定义 Control_CheckboxGroup_Abstract 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: checkboxgroup_abstract.php 2014 2009-01-08 19:01:29Z dualface $
+ * @version $Id: checkboxgroup_abstract.php 2283 2009-03-04 14:33:21Z lonestone $
  * @package webcontrols
  */
 
@@ -15,7 +15,7 @@
  * Control_CheckboxGroup_Abstract 是群组多选框的基础类
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: checkboxgroup_abstract.php 2014 2009-01-08 19:01:29Z dualface $
+ * @version $Id: checkboxgroup_abstract.php 2283 2009-03-04 14:33:21Z lonestone $
  * @package webcontrols
  */
 abstract class Control_CheckboxGroup_Abstract extends QUI_Control_Abstract
@@ -35,10 +35,17 @@ abstract class Control_CheckboxGroup_Abstract extends QUI_Control_Abstract
         foreach ($items as $value => $caption)
         {
             $checked = false;
-            if ($value == $selected && strlen($value) == strlen($selected) && strlen($selected) > 0)
-            {
-                $checked = true;
-            }
+			if(is_array($selected))
+			{
+				if(in_array($value, $selected)) $checked = true;
+			}
+			else
+			{
+				if ($value == $selected && strlen($value) == strlen($selected) && strlen($selected) > 0)
+				{
+					$checked = true;
+				}
+			}
 
 			$out .= "<input type=\"{$type}\" ";
 			$name = $this->id() . $suffix;

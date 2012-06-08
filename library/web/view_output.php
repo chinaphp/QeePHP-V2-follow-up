@@ -1,5 +1,5 @@
 <?php
-// $Id: view_output.php 2010 2009-01-08 18:56:36Z dualface $
+// $Id: view_output.php 2523 2009-05-27 05:30:03Z jerry $
 
 /**
  * 定义 QView_Output 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: view_output.php 2010 2009-01-08 18:56:36Z dualface $
+ * @version $Id: view_output.php 2523 2009-05-27 05:30:03Z jerry $
  * @package mvc
  */
 
@@ -15,11 +15,18 @@
  * 类 QView_Output 用于向浏览器直接输出数据（例如下载文件）
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: view_output.php 2010 2009-01-08 18:56:36Z dualface $
+ * @version $Id: view_output.php 2523 2009-05-27 05:30:03Z jerry $
  * @package mvc
  */
 class QView_Output
 {
+    /**
+     * 内容表现类型
+     *
+     * @var boolean
+     */
+    protected $_content_disposition = 'attachment';
+
     /**
      * 所有要输出的内容
      *
@@ -67,6 +74,23 @@ class QView_Output
         $this->_output_filename  = $output_filename;
         $this->_mime_type        = $mime_type;
         if ($content) { $this->appendData($content); }
+    }
+
+    /**
+     * 设置内容表现类型
+     *
+     * @param boolean $cond
+     *
+     * @return QView_Output
+     */
+    function contentDisposition($disposition = null)
+    {
+        if(is_null($disposition))
+        {
+            return $this->_content_disposition;
+        }
+        $this->_content_disposition = $disposition;
+        return $this;
     }
 
     /**
@@ -169,7 +193,8 @@ class QView_Output
             }
         }
 
-        header("Content-Disposition: attachment; filename={$filename}; charset={$this->_filename_charset}");
+        header("Content-Disposition: {$this->_content_disposition}; filename={$filename}; charset={$this->_filename_charset}");
+
         if ($this->_enabled_client_cache)
         {
             header('Pragma: cache');

@@ -1,5 +1,5 @@
 <?php
-// $Id: control_abstract.php 2113 2009-01-19 20:42:57Z dualface $
+// $Id: control_abstract.php 2554 2009-06-12 02:23:15Z jerry $
 
 /**
  * 定义 QUI_Control_Abstract 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: control_abstract.php 2113 2009-01-19 20:42:57Z dualface $
+ * @version $Id: control_abstract.php 2554 2009-06-12 02:23:15Z jerry $
  * @package webcontrols
  */
 
@@ -15,7 +15,7 @@
  * QUI_Control_Abstract 是用户界面控件的基础类
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: control_abstract.php 2113 2009-01-19 20:42:57Z dualface $
+ * @version $Id: control_abstract.php 2554 2009-06-12 02:23:15Z jerry $
  * @package webcontrols
  */
 abstract class QUI_Control_Abstract
@@ -67,12 +67,13 @@ abstract class QUI_Control_Abstract
      *
      * @param string $id
      * @param array $attrs
+     *
      */
-    function __construct($id, array $attrs = array())
+    function __construct($id, $attrs = array())
     {
         $this->_context = QContext::instance();
         $this->_id = $id;
-        $this->_attrs = (array)$attrs;
+        $this->_attrs = $attrs;
     }
 
     /**
@@ -89,7 +90,15 @@ abstract class QUI_Control_Abstract
             $this->_id = $id;
             return $this;
         }
-        return $this->_id;
+
+        if(!empty($this->_attrs['qform_group_id']))
+        {
+            return "{$this->_attrs['qform_group_id']}_{$this->_id}";
+        }
+        else
+        {
+            return $this->_id;
+        }
     }
 
     /**
@@ -186,7 +195,7 @@ abstract class QUI_Control_Abstract
      */
     function display($render = null)
     {
-        if (is_object($render))
+        if ($render instanceof QView_Render_PHP_Parser)
         {
             $this->_render = $render;
         }
@@ -217,23 +226,47 @@ abstract class QUI_Control_Abstract
      */
     protected function _fetchView($filename, array $more_vars = null)
     {
+        $this->_before_render();
         $vars = $this->_view;
         $vars['_ctx']         = $this->_context;
         $vars['_CTL_ID']      = $this->id();
         $vars['_BASE_DIR']    = $this->_context->baseDir();
         $vars['_BASE_URI']    = $this->_context->baseUri();
         $vars['_REQUEST_URI'] = $this->_context->requestUri();
+        /*
+        */
+        // TODO! 全局变量应该放到 控件抽象类 _before_render() 中
 
         if (is_array($more_vars))
         {
             $vars = array_merge($vars, $more_vars);
         }
 
-        //if (is_null($this->_render))
-        //{
+        if(strpos($filename, 'view:') === 0)
+        {
+            $filename = Q::ini('app_config/APP_DIR') . DS
+                . 'view' . DS . ltrim(substr($filename, 5), '/\\');
+        }
+        elseif($filename{0} != DS && strpos($filename, ':') === false)
+        {
+            $_class_name = strtolower(get_class($this));
+            $_sep = explode('_', $_class_name);
+            array_pop($_sep);
+            $filename = Q::ini('app_config/APP_DIR') . DS
+                . implode($_sep, DS)
+                . DS . ltrim($filename, '/\\');
+        }
+
+        if (is_null($this->_render))
+        {
             $this->_render = new $this->_render_class(dirname($filename));
-        //}
-        $this->_render->vars($vars);
+        }
+        else
+        {
+            // TODO! 假如共享视图解析器实例，需在此做必要处理
+        }
+
+        $this->_render->assign($vars);
 
         $extname = pathinfo($filename, PATHINFO_EXTENSION);
         $pextname = $this->_render->extname();
@@ -243,6 +276,15 @@ abstract class QUI_Control_Abstract
         }
 
         return $this->_render->parse($filename);
+    }
+
+    /**
+     * 渲染之前调用
+     *
+     * 继承类可以覆盖此方法。
+     */
+    protected function _before_render()
+    {
     }
 
     protected function _extract($attr, $default = null)
@@ -273,11 +315,13 @@ abstract class QUI_Control_Abstract
 
     protected function _printValue()
     {
-        if (is_object($this->value) && method_exists($this->value, '__toString'))
+        if (is_object($this->value) && !method_exists($this->value, '__toString'))
         {
             return '';
         }
-        return (strlen($this->value)) ? 'value="' . htmlspecialchars(str_replace('"', '\\"', $this->value)) . '" ' : '';
+        return strlen($this->value)
+            ? 'value="' . htmlspecialchars($this->value) . '" '
+            : '';
     }
 
     /**
@@ -335,12 +379,13 @@ abstract class QUI_Control_Abstract
     protected function _printAttrs($exclude = 'id, name, value')
     {
         $exclude = Q::normalize($exclude);
+        $exclude[] = 'qform_group_id';
         $exclude = array_flip($exclude);
         $out = '';
         foreach ($this->_attrs as $attr => $value)
         {
             if (isset($exclude[$attr])) continue;
-            $out .= $attr .'="' . htmlspecialchars(str_replace('"', '\\"', $value)) . '" ';
+            $out .= $attr .'="' . htmlspecialchars($value) . '" ';
         }
         return $out;
     }

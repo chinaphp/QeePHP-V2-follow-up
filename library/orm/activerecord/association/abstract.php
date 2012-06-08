@@ -1,5 +1,5 @@
 <?php
-// $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+// $Id: abstract.php 2233 2009-02-11 07:48:41Z dualface $
 
 /**
  * 定义 QDB_ActiveRecord_Association_Abstract 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: abstract.php 2233 2009-02-11 07:48:41Z dualface $
  * @package orm
  */
 
@@ -15,7 +15,7 @@
  * QDB_ActiveRecord_Association_Abstract 封装 ActiveRecord 之间的关联关系
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: abstract.php 2233 2009-02-11 07:48:41Z dualface $
  * @package orm
  */
 abstract class QDB_ActiveRecord_Association_Abstract
@@ -100,7 +100,7 @@ abstract class QDB_ActiveRecord_Association_Abstract
     public $on_delete_set_value = null;
 
     /**
-     * 指示保存来源数据时，似乎否保存关联的目标数据
+     * 指示保存来源数据时，是否保存关联的目标数据
      *
      * save|true    - 根据目标数据是否有 ID 或主键值来决定是创建新的目标数据还是更新已有的目标数据
      * create       - 强制创建新的目标数据

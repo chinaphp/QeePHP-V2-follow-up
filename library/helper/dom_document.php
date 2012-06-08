@@ -1,5 +1,5 @@
 <?php
-// $Id: dom_document.php 2017 2009-01-08 19:09:51Z dualface $
+// $Id: dom_document.php 2424 2009-04-22 03:48:20Z yangyi $
 
 /**
  * 定义 QDom_Document 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: dom_document.php 2017 2009-01-08 19:09:51Z dualface $
+ * @version $Id: dom_document.php 2424 2009-04-22 03:48:20Z yangyi $
  * @package helper
  */
 
@@ -15,11 +15,19 @@
  * QDom_Document 类对PHP5自带的DOMDocument进行了自己的扩展
  *
  * @author yangyi.cn.gz@gmail.com
- * @version $Id: dom_document.php 2017 2009-01-08 19:09:51Z dualface $
+ * @version $Id: dom_document.php 2424 2009-04-22 03:48:20Z yangyi $
  * @package helper
  */
 class QDom_Document extends DOMDocument
 {
+    /**
+     * xpath查询handle
+     * 
+     * @var DOMXPath
+     * @access private
+     */
+    private $_xpath_handle = null;
+
     /**
      * 构造函数
      *
@@ -51,11 +59,9 @@ class QDom_Document extends DOMDocument
      * @return  DOMXPath
      */
     public function xpath() {
-        static $xpath = null;
-        if (null === $xpath) {
-            $xpath = new DOMXPath($this);
-        }
-        return $xpath;
+        if (null === $this->_xpath_handle) $this->_xpath_handle = new DOMXPath($this);
+
+        return $this->_xpath_handle;
     }
 
     /**

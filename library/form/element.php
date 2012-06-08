@@ -1,5 +1,5 @@
 <?php
-// $Id: element.php 2106 2009-01-19 16:09:39Z dualface $
+// $Id: element.php 2535 2009-06-02 02:04:53Z jerry $
 
 /**
  * 定义 QForm_Element 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: element.php 2106 2009-01-19 16:09:39Z dualface $
+ * @version $Id: element.php 2535 2009-06-02 02:04:53Z jerry $
  * @package form
  */
 
@@ -15,11 +15,25 @@
  * QForm_Element 类封装了表单中的一个值元素
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: element.php 2106 2009-01-19 16:09:39Z dualface $
+ * @version $Id: element.php 2535 2009-06-02 02:04:53Z jerry $
  * @package form
  */
-class QForm_Element extends QForm_Element_Abstract
+class QForm_Element
 {
+    /**
+     * 属性值
+     *
+     * @var array
+     */
+    protected $_attrs = array();
+
+    /**
+     * 该元素的所有者
+     *
+     * @var QForm_Group
+     */
+    protected $_owner;
+
     /**
      * 未过滤的值
      *
@@ -46,7 +60,7 @@ class QForm_Element extends QForm_Element_Abstract
      *
      * @var boolean
      */
-    protected $_is_valid = false;
+    protected $_is_valid = true;
 
     /**
      * 验证失败的信息
@@ -56,23 +70,202 @@ class QForm_Element extends QForm_Element_Abstract
     protected $_error_msg = array();
 
     /**
-     * 该元素所属的群组
+     * 构造函数
      *
-     * @var QForm_Group
+     * @param string $id 元素ID
+     * @param array $attrs 属性
+     * @param QForm_Group $owner
      */
-    protected $_group;
+    function __construct($id = null, array $attrs = null, QForm_Group $owner = null)
+    {
+        if (!is_array($attrs))
+        {
+            $attrs = array();
+        }
+
+        $this->_attrs = $attrs;
+        if (!isset($attrs['id']))
+        {
+            $this->_attrs['id'] = $id;
+        }
+        if (!isset($attrs['name']))
+        {
+            $this->_attrs['name'] = $id;
+        }
+        if (!isset($attrs['_data_binding']))
+        {
+            $this->_attrs['_data_binding'] = true;
+        }
+
+        $this->_owner = $owner;
+        if ($owner)
+        {
+            if (!isset($attrs['_nested_name']))
+            {
+                $this->_attrs['_nested_name'] = $owner->nestedName();
+            }
+
+            if(!empty($this->_attrs['_nested_name']))
+            {
+                $_lpos = strpos($this->_attrs['name'], '[');
+                if($_lpos === false)
+                {
+                    $this->_attrs['name'] = "{$this->_attrs['_nested_name']}[{$this->_attrs['name']}]";
+                }
+                else
+                {
+                    $_prefix = substr($this->_attrs['name'], 0, $_lpos);
+                    $_suffix = substr($this->_attrs['name'], $_lpos);
+                    $this->_attrs['name'] = "{$this->_attrs['_nested_name']}[{$_prefix}]{$_suffix}";
+                }
+            }
+        }
+        else
+        {
+            $this->_attrs['_nested_name'] = "";
+        }
+    }
 
     /**
-     * 设置元素的所属的群组，由 QeePHP 内部使用
+     * 魔法方法，以便通过对象属性直接访问元素的属性值
      *
-     * @param QForm_Group $group
+     * @code php
+     * echo $element->title;
+     * @endcode
+     *
+     * @param string $attr
+     *
+     * @return mixed
+     */
+    function __get($attr)
+    {
+        return $this->get($attr);
+    }
+
+    /**
+     * 魔法方法，以便通过指定对象属性的方式来修改元素的属性值
+     *
+     * @param string $attr 属性名
+     * @param mixed $value 属性值
+     */
+    function __set($attr, $value)
+    {
+        $this->_attrs[$attr] = $value;
+    }
+
+    /**
+     * 获得属性值，如果属性不存在返回 $default 参数指定的默认值
+     *
+     * @param string $attr 属性名
+     * @param mixed $default 默认值
+     *
+     * @return mixed 属性值
+     */
+    function get($attr, $default = null)
+    {
+        if ($attr == 'validations')
+        {
+            return $this->_validations;
+        } else if ($attr == 'filters') {
+            return $this->_filters;
+        }
+
+        return isset($this->_attrs[$attr]) ? $this->_attrs[$attr] : $default;
+    }
+
+    /**
+     * 修改属性值
+     *
+     * @param string $attr 属性名
+     * @param mixed $value 属性值
      *
      * @return QForm_Element
      */
-    function setGroup(QForm_Group $group)
+    function set($attr, $value)
     {
-        $this->_group = $group;
+        $this->_attrs[$attr] = $value;
         return $this;
+    }
+
+    /**
+     * 确定数据绑定状态
+     *
+     * @return boolean
+     */
+    function dataBinding()
+    {
+        return $this->_data_binding;
+    }
+
+    /**
+     * 修改数据绑定状态
+     *
+     * @param boolean $enabled
+     *
+     * @return QForm_Element
+     */
+    function enableDataBinding($enabled = true)
+    {
+        $this->_data_binding = (bool)$enabled;
+    }
+
+    /**
+     * 返回群组的嵌套名
+     *
+     * @return string
+     */
+    function nestedName()
+    {
+        return $this->_attrs['_nested_name'];
+    }
+
+    /**
+     * 设置嵌套名
+     *
+     * @param string $name
+     *
+     * @return QForm_Element
+     */
+    function changeNestedName($name)
+    {
+        $this->_nested_name = $name;
+        return $this;
+    }
+
+    /**
+     * 返回元素的所有者
+     *
+     * @return QForm_Group
+     */
+    function owner()
+    {
+        return $this->_owner;
+    }
+
+    /**
+     * 返回所有不是以“_”开头的属性的值
+     *
+     * @return array
+     */
+    function attrs()
+    {
+        $ret = array();
+        foreach ($this->_attrs as $attr => $value)
+        {
+            if ($attr{0} == '_') continue;
+            $ret[$attr] = $value;
+        }
+        return $ret;
+    }
+
+    /**
+     * 返回所有属性的值
+     *
+     * @return array
+     */
+    function allAttrs()
+    {
+        return $this->_attrs;
     }
 
     /**
@@ -82,15 +275,18 @@ class QForm_Element extends QForm_Element_Abstract
      * @param string $id
      * @param array $attrs
      *
-     * @return QForm_Element_Abstract
+     * @return QForm_Element
      */
     function add($type, $id, array $attrs = null)
     {
-        if (!is_null($this->_group))
+        if (!is_null($this->_owner))
         {
-            return $this->_group->add($type, $id, $attrs);
+            return $this->_owner->add($type, $id, $attrs);
         }
-        throw new QForm_Exception(__('Current element not child.'));
+        // LC_MSG: 当前元素 "%s" 不属于任何群组，因此无法完成 add() 操作.
+        throw new QForm_Exception(
+            __('当前元素 "%s" 不属于任何群组，因此无法完成 add() 操作.', $this->id)
+        );
     }
 
     /**
@@ -129,7 +325,7 @@ class QForm_Element extends QForm_Element_Abstract
      *
      * @param string|array $filters 要添加的过滤器
      *
-     * @return QForm_Element
+     * @return QForm_Element 返回元素对象本身，实现连贯接口
      */
     function addFilters($filters)
     {
@@ -175,12 +371,12 @@ class QForm_Element extends QForm_Element_Abstract
      * // 将 Post 模型中与该表单元素同名属性的验证规则添加到表单元素中
      * $element->addValidations(Post::meta());
      * // 或者将指定属性的验证规则添加到表单元素中
-     * $element->addValidation(Post::meta(), 'propname');
+     * $element->addValidations(Post::meta(), 'propname');
      * @endcode
      *
      * @param mixed $validations 要添加的验证规则
      *
-     * @return QForm_Element
+     * @return QForm_Element 返回元素对象本身，实现连贯接口
      */
     function addValidations($validations)
     {
@@ -225,24 +421,54 @@ class QForm_Element extends QForm_Element_Abstract
     }
 
     /**
+     * 清除该元素的所有验证规则
+     *
+     * @return QForm_Element
+     */
+    function cleanValidations()
+    {
+        $this->_validations = array();
+        return $this;
+    }
+
+    /**
+     * 导入数据，但不进行过滤和验证
+     *
+     * @param mixed $data
+     *
+     * @return QForm_Element
+     */
+    function import($data)
+    {
+        if ($this->_data_binding)
+        {
+            $this->_attrs['value'] = $this->_unfiltered_value = $data;
+        }
+        return $this;
+    }
+
+    /**
      * 导入数据后进行过滤，并返回验证结果
      *
      * 通常调用 QForm 对象的 validate() 方法一次性导入整个表单的数据。
      *
-     * @param mixed $data
+     * @param mixed $data 要导入并验证的数据
+     * @param array $failed 保存验证失败的信息
      *
-     * @return boolean
+     * @return boolean 验证结果
      */
-    function validate($data)
+    function validate($data, & $failed = null)
     {
+        if (!$this->_data_binding) return false;
+
         $this->_unfiltered_value = $data;
         $data = QFilter::filterBatch($data, $this->_filters);
-        $this->value = $data;
+        $this->_attrs['value'] = $data;
 
         if (!empty($this->_validations))
         {
             $failed = null;
-            $this->_is_valid = QValidator::validateBatch($data, $this->_validations, QValidator::CHECK_ALL, $failed);
+            $this->_is_valid = (bool)QValidator::validateBatch($data, $this->_validations, QValidator::CHECK_ALL, $failed);
             if (!$this->_is_valid)
             {
                 $this->_error_msg = array();
@@ -251,10 +477,12 @@ class QForm_Element extends QForm_Element_Abstract
                     $this->_error_msg[] = array_pop($v);
                 }
             }
+            $failed = $this->_error_msg;
         }
         else
         {
             $this->_error_msg = array();
+            $failed = null;
             $this->_is_valid = true;
         }
 
@@ -268,7 +496,17 @@ class QForm_Element extends QForm_Element_Abstract
      */
     function isValid()
     {
-        return $this->_is_valid;
+        return (bool)$this->_is_valid;
+    }
+
+    /**
+     * 指示表单元素的值是否无效
+     *
+     * @return boolean
+     */
+    function isInvalid()
+    {
+        return !((bool)$this->_is_valid);
     }
 
     /**
@@ -283,7 +521,7 @@ class QForm_Element extends QForm_Element_Abstract
      *
      * @param string|array $msg 错误消息，如果有多个可以用数组
      *
-     * @return QForm_Element
+     * @return QForm_Element 返回元素对象本身，实现连贯接口
      */
     function invalidate($msg = null)
     {
@@ -296,7 +534,7 @@ class QForm_Element extends QForm_Element_Abstract
     /**
      * 返回验证错误信息
      *
-     * @return array
+     * @return array 包含该元素所有错误消息的数组
      */
     function errorMsg()
     {
@@ -306,7 +544,7 @@ class QForm_Element extends QForm_Element_Abstract
     /**
      * 获得表单元素的值
      *
-     * @return mixed
+     * @return mixed 表单元素的值
      */
     function value()
     {
@@ -316,7 +554,7 @@ class QForm_Element extends QForm_Element_Abstract
     /**
      * 返回未过滤的值
      *
-     * @return mixed
+     * @return mixed 表单元素未过滤的值
      */
     function unfilteredValue()
     {

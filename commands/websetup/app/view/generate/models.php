@@ -10,6 +10,9 @@
 $(document).ready(function() {
 	$("#models > ul").tabs();
     $("#table_name").change(function() {
+        $("#new_model_name").val($(this).val().substr(0,$(this).val().length-1).replace('_',' ').replace(/\b\w+\b/g, function(word) {
+                           return word.substring(0,1).toUpperCase( ) +word.substring(1);
+                         }).replace(' ',''))
         if (this.value != 0)
         {
 		    $("#table_detail").load("<?php echo url('generate/getcolumns'); ?>", {

@@ -51,7 +51,7 @@ class QReflection_Application
     {
         if (empty($app_config['MODULE_DIR']))
         {
-            $app_config['MODULE_DIR'] = rtrim($app_config['ROOT_DIR'], '/\\') . '/modules';
+            $app_config['MODULE_DIR'] = rtrim($app_config['ROOT_DIR'], '/\\') . DS . 'modules';
         }
         else
         {
@@ -60,7 +60,7 @@ class QReflection_Application
 
         if (empty($app_config['APP_DIR']))
         {
-            $app_config['APP_DIR'] = rtrim($app_config['ROOT_DIR'], '/\\') . '/app';
+            $app_config['APP_DIR'] = rtrim($app_config['ROOT_DIR'], '/\\') . DS . 'app';
         }
         else
         {
@@ -132,12 +132,11 @@ class QReflection_Application
         if (is_null($this->_modules_name))
         {
             $this->_modules_name = array();
-            $this->_modules_name = array();
-            foreach (glob($this->configItem('MODULE_DIR') . '/*') as $path)
+            foreach ((array)glob($this->configItem('MODULE_DIR') . '/*') as $path)
             {
                 if (!is_dir($path)) continue;
                 $basename = basename($path);
-                if ($basename == '.' || $basename == '..') continue;
+                if (!preg_match('/^[a-z]+[a-z0-9]*$/i', $basename)) continue;
                 $this->_modules_name[] = $basename;
             }
             sort($this->_modules_name, SORT_STRING);
@@ -159,7 +158,8 @@ class QReflection_Application
             $this->_modules[self::DEFAULT_MODULE_NAME] = new QReflection_Module($this, null, $this->configItem('APP_DIR'));
             foreach ($this->modulesName() as $module_name)
             {
-                $this->_modules[$module_name] = new QReflection_Module($this, $module_name, $this->configItem('MODULE_DIR') . $module_name);
+                $this->_modules[$module_name] = new QReflection_Module($this, 
+                        $module_name, $this->configItem('MODULE_DIR') . DS . $module_name);
             }
         }
 

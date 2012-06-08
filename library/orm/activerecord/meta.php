@@ -1,5 +1,4 @@
 <?php
-// $Id: meta.php 2005 2009-01-08 18:43:17Z dualface $
 
 /**
  * 定义 QDB_ActiveRecord_Meta 类
@@ -7,7 +6,6 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: meta.php 2005 2009-01-08 18:43:17Z dualface $
  * @package orm
  */
 
@@ -15,7 +13,6 @@
  * QDB_ActiveRecord_Meta 类封装了 QDB_ActiveRecord_Abstract 继承类的元信息
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: meta.php 2005 2009-01-08 18:43:17Z dualface $
  * @package orm
  */
 class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
@@ -179,16 +176,11 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
     public $inherit_base_class;
 
     /**
-     * 指示是否是多表继承
+     * 用于指定继承类名称的字段名
      *
-     * @var boolean
+     * @var string
      */
-    public $multi_tables_inherit = false;
-
-    /**
-     * 使用多表继承时，继承类的表
-     */
-    public $inherit_extend_table;
+    public $inherit_type_field;
 
     /**
      * BELONGS_TO 关联的 source_key
@@ -294,17 +286,14 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
      *
      * @return QDB_Select
      */
-    function findByArgs(array $args)
+    function findByArgs(array $args = array())
     {
         $select = new QDB_Select($this->table->getConn());
-        $select->asObject($this->class_name)->from($this->table);
+        $select->asColl()->from($this->table)->asObject($this->class_name);
         $c = count($args);
         if ($c > 0)
         {
-            if ($c == 1
-                && intval($args[0]) == $args[0]
-                && is_numeric($args[0])
-                && $this->idname_count == 1)
+            if ($c == 1 && is_int($args[0]) && $this->idname_count == 1)
             {
                 $select->where(array(reset($this->idname) => $args[0]));
             }
@@ -313,6 +302,13 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
                 call_user_func_array(array($select, 'where'), $args);
             }
         }
+
+        if ($this->inherit_base_class && $this->inherit_type_field)
+        {
+            // 如果是来自某个继承类的查询，则限定只能查询该类型的对象
+            $select->where(array($this->inherit_type_field => $this->class_name));
+        }
+
         return $select;
     }
 
@@ -458,12 +454,16 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
                 array_unshift($rule, $data[$prop]);
 
                 $ret = QValidator::validateByArgs($validation, $rule);
-                if (is_null($ret))
+                if ($ret === QValidator::SKIP_OTHERS)
                 {
                     break;
                 }
                 elseif (!$ret)
                 {
+					if(isset($error[$prop]['not_null']))
+					{
+						unset($error[$prop]['not_null']);
+					}
                     $error[$prop][$index] = $msg;
                     if (isset($policy['policy']) && !$policy['policy']['check_all_rules'])
                     {
@@ -551,13 +551,12 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
             $select->limit($assoc->on_find[0], $assoc->on_find[1]);
         }
 
-        $objects = $select->query();
-
         if ($assoc->one_to_one)
         {
+            $objects = $select->query();
             if (count($objects))
             {
-                return (is_object($objects)) ? $objects->rewind() : reset($objects);
+                return (is_object($objects)) ? $objects->first() : reset($objects);
             }
             else
             {
@@ -566,8 +565,18 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         }
         else
         {
-            return $objects;
+            return $select->asColl()->query();
         }
+    }
+
+    /**
+     * 检查是否绑定了指定的行为插件
+     *
+     * FIXED!
+     */
+    function hasBindBehavior($name)
+    {
+        return isset($this->_behaviors[$name]) ? true : false;
     }
 
     /**
@@ -584,6 +593,10 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         if (!is_array($config))
         {
             $config = array();
+        }
+        else
+        {
+            $config = array_change_key_case($config, CASE_LOWER);
         }
 
         foreach ($behaviors as $name)
@@ -714,7 +727,7 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         }
         else
         {
-            $this->addProp($prop_name, array('setter' => array($callback, $custom_parameters)));
+            $this->addProp($prop_name, array('setter' => $callback, 'setter_params'=> $custom_parameters));
         }
 
         return $this;
@@ -753,7 +766,7 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         }
         else
         {
-            $this->addProp($name, array('getter' => array($callback, $custom_parameters)));
+            $this->addProp($name, array('getter' => $callback, 'getter_params'=>$custom_parameters));
         }
     }
 
@@ -849,7 +862,6 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         $config = array_change_key_case($config, CASE_LOWER);
         $params = array('assoc' => false);
         $params['readonly'] = isset($config['readonly']) ? (bool)$config['readonly'] : false;
-        $params['ptype'] = isset($config['ptype']) ? $config['ptype'] : 'varchar';
 
         // 确定属性和字段名之间的映射关系
         if (!empty($config['field_name']))
@@ -871,15 +883,14 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
             $params['virtual'] = false;
             $field_meta = $this->table_meta[$meta_key_name];
             $params['default_value'] = $field_meta['default'];
+            $params['ptype'] = $field_meta['ptype'];
         }
         else
         {
             $params['virtual'] = true;
             $params['default_value'] = null;
+            $params['ptype'] = 'varchar'; // TODO! 这个不能够在配置指定？是bug吗？
         }
-        // 设置对象属性默认值
-        $this->default_props[$prop_name] = $params['default_value'];
-
         // 处理对象聚合
         foreach (self::$_assoc_types as $type)
         {
@@ -894,36 +905,43 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         }
 
         // 设置属性信息
+        if (!$params['virtual'] || $params['assoc'])
+        {
+            $this->default_props[$prop_name] = $params['default_value'];
+        }
         $this->props[$prop_name] = $params;
 
         // 设置 getter 和 setter
         if (!empty($config['setter']))
         {
+            $setter_params = !empty($config['setter_params']) ? (array)$config['setter_params'] : array();
             if (is_array($config['setter']))
             {
-                if (is_array(reset($config['setter'])))
-                {
-                    $this->setPropSetter($prop_name, $config['setter'][0], $config['setter'][1]);
-                }
-                else
-                {
-                    $this->setPropSetter($prop_name, $config['setter']);
-                }
+                $this->setPropSetter($prop_name, $config['setter'], $setter_params);
             }
             else
             {
-                $this->setPropSetter($prop_name, $config['setter']);
+                if (strpos($config['setter'], '::'))
+                {
+                    $config['setter'] = explode('::', $config['setter']);
+                }
+                $this->setPropSetter($prop_name, $config['setter'], $setter_params);
             }
         }
         if (!empty($config['getter']))
         {
-            if (is_array($config['getter']) && is_array($config['getter'][0]))
+            $getter_params = !empty($config['getter_params']) ? (array)$config['getter_params'] : array();
+            if (is_array($config['getter']))
             {
-                $this->setPropGetter($prop_name, $config['getter'][0], $config['getter'][1]);
+                $this->setPropGetter($prop_name, $config['getter'], $getter_params);
             }
             else
             {
-                $this->setPropGetter($prop_name, $config['getter']);
+                if (strpos($config['getter'], '::'))
+                {
+                    $config['getter'] = explode('::', $config['getter']);
+                }
+                $this->setPropGetter($prop_name, $config['getter'], $getter_params);
             }
         }
 
@@ -1281,11 +1299,15 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         {
             $this->inherit_base_class = $ref['inherit'];
             /**
-             * 不管是单表继承还是多表继承，继承类的 __define() 方法只需要指定与父类不同的内容
+             * 继承类的 __define() 方法只需要指定与父类不同的内容
              */
             $base_ref = (array) call_user_func(array($this->inherit_base_class, '__define'));
             $ref = array_merge_recursive($base_ref, $ref);
         }
+        // 被继承的类
+        $this->inherit_type_field = !empty($ref['inherit_type_field'])
+                                    ? $ref['inherit_type_field']
+                                    : null;
 
         // 设置表数据入口对象
         $table_config = !empty($ref['table_config']) ? (array)$ref['table_config'] : array();
@@ -1299,27 +1321,12 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         }
         $this->table_meta = $this->table->columns();
 
-        // 如果设置了 subclass_table_name 后者 subclass_table_class 则视为多表继承
-        if (!empty($ref['subclass_table_name']) || !empty($ref['subclass_table_class']))
-        {
-            $this->multi_tables_inherit = true;
-
-            $table_config = !empty($ref['subclass_table_config']) ? (array)$ref['subclass_table_config'] : array();
-            if (!empty($ref['subclass_table_class']))
-            {
-                $this->inherit_extend_table = $this->_tableByClass($ref['subclass_table_class'], $table_config);
-            }
-            else
-            {
-                $this->inherit_extend_table = $this->_tableByName($ref['subclass_table_name'], $table_config);
-            }
-        }
-
         // 根据字段定义确定字段属性
         if (empty($ref['props']) || ! is_array($ref['props']))
         {
             $ref['props'] = array();
         }
+
         foreach ($ref['props'] as $prop_name => $config)
         {
             $this->addProp($prop_name, $config);
@@ -1328,18 +1335,8 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
         // 将没有指定的字段也设置为对象属性
         foreach ($this->table_meta as $prop_name => $field)
         {
-            if (isset($this->props2fields[$prop_name]))
-            {
-                continue;
-            }
+            if (isset($this->props2fields[$prop_name])) continue;
             $this->addProp($prop_name, $field);
-        }
-
-        // 绑定行为插件
-        if (isset($ref['behaviors']))
-        {
-            $config = isset($ref['behaviors_settings']) ? $ref['behaviors_settings'] : array();
-            $this->bindBehaviors($ref['behaviors'], $config);
         }
 
         // 设置其他选项
@@ -1384,6 +1381,13 @@ class QDB_ActiveRecord_Meta implements QDB_ActiveRecord_Callbacks
             $this->idname[$pn] = $pn;
         }
         $this->idname_count = count($this->idname);
+
+        // 绑定行为插件
+        if (isset($ref['behaviors']))
+        {
+            $config = isset($ref['behaviors_settings']) ? $ref['behaviors_settings'] : array();
+            $this->bindBehaviors($ref['behaviors'], $config);
+        }
     }
 
     /**

@@ -88,7 +88,7 @@ return array(
             // 其他模式缓存 120 秒
             'life_time' => $run_mode == 'deploy' ?
                                 86400 :
-                                $run_mode == 'devel' ? 10 : 120,
+                                ($run_mode == 'devel' ? 10 : 120),
             'serialize' => true,
             'cache_dir' => "{$root_dir}/tmp/runtime_cache",
         ),

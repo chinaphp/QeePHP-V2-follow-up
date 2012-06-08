@@ -1,5 +1,5 @@
 <?php
-// $Id: pgsql.php 1937 2009-01-05 19:09:40Z dualface $
+// $Id: pgsql.php 2159 2009-01-25 12:43:25Z dualface $
 
 /**
  * 定义 QDB_Adapter_Pgsql 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: pgsql.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: pgsql.php 2159 2009-01-25 12:43:25Z dualface $
  * @package database
  */
 
@@ -16,7 +16,7 @@
  *     这个是参考QDB_Adpter_Mysql 及 FLEA_Db_Driver_Pgsql 类修改而来，并根据具体情况进行了一些修改。
  *
  * @author  Abin30@163.com, yangyi.cn.gz@gmail.com
- * @version $Id: pgsql.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: pgsql.php 2159 2009-01-25 12:43:25Z dualface $
  * @package database
  */
 class QDB_Adapter_Pgsql extends QDB_Adapter_Abstract
@@ -104,6 +104,14 @@ class QDB_Adapter_Pgsql extends QDB_Adapter_Abstract
 
     function qstr($value)
     {
+        if (is_array($value))
+        {
+            foreach ($value as $offset => $v)
+            {
+                $value[$offset] = $this->qstr($v);
+            }
+            return $value;
+        }
         if (is_int($value) || is_float($value)) { return $value; }
         if (is_bool($value)) { return $value ? $this->_true_value : $this->_false_value; }
         if (is_null($value)) { return $this->_null_value; }

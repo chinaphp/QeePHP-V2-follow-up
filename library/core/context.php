@@ -1,5 +1,5 @@
 <?php
-// $Id: context.php 2034 2009-01-09 18:39:53Z dualface $
+// $Id: context.php 2536 2009-06-02 16:39:30Z jerry $
 
 /**
  * 定义 QContext 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: context.php 2034 2009-01-09 18:39:53Z dualface $
+ * @version $Id: context.php 2536 2009-06-02 16:39:30Z jerry $
  * @package core
  */
 
@@ -30,7 +30,7 @@
  * @endcode
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: context.php 2034 2009-01-09 18:39:53Z dualface $
+ * @version $Id: context.php 2536 2009-06-02 16:39:30Z jerry $
  * @package core
  */
 class QContext implements ArrayAccess
@@ -55,7 +55,11 @@ class QContext implements ArrayAccess
     // 默认控制器
     const UDI_DEFAULT_CONTROLLER = 'default';
     // 默认动作
-    const UDI_DEFAULT_ACTION     = 'index';
+    const UDI_DEFAULT_ACTION     = '';
+    // 默认的模块
+    const UDI_DEFAULT_MODULE     = 'default';
+    // 默认的名字空间
+    const UDI_DEFAULT_NAMESPACE  = 'default';
 
     /**
      * 指示 URL 模式
@@ -141,27 +145,62 @@ class QContext implements ArrayAccess
     static private $_url_mode;
 
     /**
+     * UDI 的默认值
+     */
+    private static $_udi_defaults = array(
+        self::UDI_MODULE => self::UDI_DEFAULT_MODULE,
+        self::UDI_NAMESPACE => self::UDI_DEFAULT_NAMESPACE,
+        self::UDI_CONTROLLER => self::UDI_DEFAULT_CONTROLLER,
+        self::UDI_ACTION     => self::UDI_DEFAULT_ACTION,
+    );
+
+    /**
      * 构造函数
      */
     private function __construct()
     {
+        $this->reinit();
+    }
+
+    /**
+     * 根据服务器运行环境，重新初始化 QContext 对象
+     *
+     * @param boolean $full_init 是否进行完全的初始化
+     */
+    function reinit($full_init = false)
+    {
+        if ($full_init)
+        {
+            $this->_params = array();
+            $this->_router = null;
+        }
+
+        self::$_request_uri = null;
+        self::$_base_uri    = null;
+        self::$_base_dir    = null;
+        self::$_url_mode    = null;
+
         // 如果有必要，初始化路由服务
         $url_mode = strtolower(Q::ini('dispatcher_url_mode'));
-        if ($url_mode == self::URL_MODE_PATHINFO
-            || $url_mode == self::URL_MODE_REWRITE)
+        if (is_null($this->_router)
+            && ($url_mode == self::URL_MODE_PATHINFO || $url_mode == self::URL_MODE_REWRITE))
         {
-            $this->_router = new QRouter(Q::ini('routes'));
-            $result = $this->_router->match($this->pathinfo());
+            $this->_router = new QRouter();
+            $this->_router->import(Q::ini('routes'), 'global_default_routes');
+            $result = $this->_router->match('/' . ltrim($this->pathinfo(), '/'));
             if ($result)
             {
                 foreach ($result as $var => $value)
                 {
-                    if (empty($value)) continue;
-                    $_GET[$var] = $_REQUEST[$var] = $value;
+                    if (strlen($value) === 0) continue;
+                    if (!isset($_GET[$var]) || strlen($_GET[$var]) === 0)
+                    {
+                        $_GET[$var] = $_REQUEST[$var] = $value;
+                    }
                 }
             }
-            self::$_url_mode = $url_mode;
         }
+        self::$_url_mode = $url_mode;
 
         // 从 $_GET 中提取请求参数
         $keys = array_keys($_GET);
@@ -218,7 +257,7 @@ class QContext implements ArrayAccess
      */
     function __get($parameter)
     {
-        return $this->get($parameter);
+        return $this->query($parameter);
     }
 
     /**
@@ -323,7 +362,7 @@ class QContext implements ArrayAccess
      */
     function offsetGet($parameter)
     {
-        return $this->get($parameter);
+        return $this->query($parameter);
     }
 
     /**
@@ -349,7 +388,7 @@ class QContext implements ArrayAccess
      * 如果指定的参数不存在，则返回 $default 参数指定的默认值。
      *
      * @code php
-     * $title = $context->get('title', 'default title');
+     * $title = $context->query('title', 'default title');
      * @endcode
      *
      * 查找请求参数的顺行是 $_GET、$_POST 和 QContext 对象附加参数。
@@ -359,7 +398,7 @@ class QContext implements ArrayAccess
      *
      * @return mixed 参数值
      */
-    function get($parameter, $default = null)
+    function query($parameter, $default = null)
     {
         if (isset($_GET[$parameter]))
             return $_GET[$parameter];
@@ -377,7 +416,7 @@ class QContext implements ArrayAccess
      * 从 $_GET 中获得指定参数，如果参数不存在则返回 $default 指定的默认值。
      *
      * @code php
-     * $title = $context->query('title', 'default title');
+     * $title = $context->get('title', 'default title');
      * @endcode
      *
      * 如果 $parameter 参数为 null，则返回整个 $_GET 的内容。
@@ -387,7 +426,7 @@ class QContext implements ArrayAccess
      *
      * @return mixed 参数值
      */
-    function query($parameter = null, $default = null)
+    function get($parameter = null, $default = null)
     {
         if (is_null($parameter))
             return $_GET;
@@ -524,6 +563,15 @@ class QContext implements ArrayAccess
         if (is_null($parameter))
             return $this->_params;
         return isset($this->_params[$parameter]) ? $this->_params[$parameter] : $default;
+    }
+
+    /**
+     * 返回所有上下文参数
+     *
+     */
+    function params()
+    {
+        return $this->_params;
     }
 
     /**
@@ -710,7 +758,9 @@ class QContext implements ArrayAccess
         // If using mod_rewrite or ISAPI_Rewrite strip the script filename
         // out of baseUrl. $pos !== 0 makes sure it is not matching a value
         // from PATH_INFO or QUERY_STRING
-        if ((strlen($request_uri) >= strlen($url)) && ((false !== ($pos = strpos($request_uri, $url))) && ($pos !== 0)))
+        if ((strlen($request_uri) >= strlen($url))
+            && ((false !== ($pos = strpos($request_uri, $url)))
+            && ($pos !== 0)))
         {
             $url = substr($request_uri, 0, $pos + strlen($url));
         }
@@ -1009,16 +1059,12 @@ class QContext implements ArrayAccess
     /**
      * 构造 url
      *
-     * url() 方法支持两种调用模式，分别是：
+     * 用法：
      *
-     * <ul>
-     *   <li>url([控制器名], [动作名], [附加参数数组], [名字空间], [模块名], [路由名])</li>
-     *   <li>url(UDI, [附加参数数组], [路由名])</li>
-     * </ul>
+     * @code php
+     * url(UDI, [附加参数数组], [路由名])
+     * @endcode
      *
-     * 如果 $action_name 参数是数组或者没有指定 $action_name 参数，则假定为采用第二种调用方法。
-     *
-     * 对于第二种方式，使用 UDI 来代替了控制器、动作名、名字空间和模块名四个参数。
      * UDI 是统一目的地标识符（Uniform Destination Identifier）的缩写。
      * UDI 由控制器、动作、名字空间以及模块名组成，采用如下的格式：
      *
@@ -1027,10 +1073,12 @@ class QContext implements ArrayAccess
      * @endcode
      *
      * UDI 字符串中，每一个部分都是可选的。
-     * 如果没有提供控制器和动作名，则使用默认的控制器（default）和动作名（index）代替。
+     * 如果没有提供控制器和动作名，则使用当前的控制器和默认动作名（index）代替。
+     * 同样，如果未提供模块名和名字空间，均使用当前值代替。
      *
      * UDI 字符串写法示例：
      *
+     * @code php
      * 'controller'
      * 'controller/action'
      * '/action'
@@ -1042,236 +1090,143 @@ class QContext implements ArrayAccess
      * 'namespace::controller/action@module'
      * '@module'
      * 'namespace::@module'
+     * @endcode
      *
      * 示例：
      * @code php
-     * $url1 = url('posts', 'edit', array('id' => $post->id()), 'admin');
-     * $url2 = url('admin::posts/edit', array('id' => $post->id()));
-     * // 两种方式生成的 URL 是相同的
+     * url('admin::posts/edit', array('id' => $post->id()));
+     * @endcode
+     *
+     * $params 参数除了采用数组，还可以是以“/”符号分割的字符串：
+     *
+     * @code php
+     * url('posts/index', 'page/3');
+     * url('users/show', 'id/5/profile/yes');
      * @endcode
      *
      * 在使用 PATHINFO 和 URL 重写时，可以使用通过制定路由名来强制要求 QeePHP
-     * 采用指定的路由规则来生成 URL。
+     * 采用指定的路由规则来生成 URL。强制指定路由规则可以加快 URL 的生成，
+     * 但在路由规则名称发生变化时，需要修改生成 URL 的代码。
      *
-     * 强制指定路由规则可以加快 URL 的生成，但在路由规则发生变化时，
-     * 可能需要修改生成 URL 的代码。
+     * $opts 参数用于控制如何生成 URL。可用的选项有：
      *
-     * @param string $controller_name 控制器名或 UDI 字符串
-     * @param string|array $action_name 动作名或附加参数数组
-     * @param array $params 附加参数数组或者路由名
-     * @param string $namespace 名字空间
-     * @param string $module_name 模块名
+     * -  base_uri: 指定 URL 前部要添加的路径（可以包括协议、域名和端口，以及路径）
+     * -  script: 指定 URL 前部要使用的脚本名
+     * -  mode: 指定 URL 生成模式，可以是 standard、pathinfo 和 rewrite
+     *
+     * @param string $udi UDI 字符串
+     * @param array|string $params 附加参数数组
      * @param string $route_name 路由名
+     * @param array $opts 控制如何生成 URL 的选项
      *
      * @return string 生成的 URL 地址
      */
-    function url($controller_name = null, $action_name = null, $params = null,
-                 $namespace = null, $module_name = null, $route_name = null)
+    function url($udi, $params = null, $route_name = null, array $opts = null)
     {
         static $base_uri;
 
         if (is_null($base_uri))
         {
-            $base_uri = $this->protocol() . '://' . rtrim($_SERVER['SERVER_NAME'], '/');
-            $server_port = $this->serverPort();
-            if ($server_port != 80)
+            $base_uri = '/' . trim($this->baseDir(), '/');
+            if ($base_uri != '/')
             {
-                $base_uri .= ":{$server_port}";
+                $base_uri .= '/';
             }
-            $base_uri .= '/' . ltrim($this->baseDir(), '/');
         }
 
-        $udi = $this->UDIArray($controller_name, self::UDI_ALL, false);
-        if (is_array($action_name))
-        {
-            // 模式2: url(UDI, [附件参数数组], [路由名])
-            $route_name = $params;
-            $params = $action_name;
-        }
-        else
-        {
-            // 模式1: url([控制器名], [动作名], [附加参数数组], [名字空间], [模块名], [路由名])
-            if (!is_null($namespace))   $udi[self::UDI_NAMESPACE] = $namespace;
-            if (!is_null($module_name)) $udi[self::UDI_MODULE] = $module_name;
-            if (!is_null($action_name)) $udi[self::UDI_ACTION] = $action_name;
-        }
-
-        if (empty($udi[self::UDI_NAMESPACE]))
-        {
-            $udi[self::UDI_NAMESPACE] = $this->namespace;
-        }
-        if (empty($udi[self::UDI_MODULE]))
-        {
-            $udi[self::UDI_MODULE] = $this->module_name;
-        }
         $udi = $this->normalizeUDI($udi);
 
-        if (!is_array($params)) $params = array();
-        if (!is_null($this->_router))
+        if (is_string($params))
         {
-            $url = rtrim($base_uri, '/');
-            if (self::$_url_mode == self::URL_MODE_PATHINFO)
+            $arr = Q::normalize($params, '/');
+            $params = array();
+            while ($key = array_shift($arr))
             {
-                $url .= '/' . $this->scriptName();
+                $val = array_shift($arr);
+                if(!is_object($val) && !is_array($val)
+                    && @strlen($val) > 0) $params[$key] = $val;
             }
-            $params = array_merge($params, $udi);
-            $url .= $this->_router->url($params, $route_name);
+        }
+        elseif(is_array($params))
+        {
+            foreach($params as $key => $val)
+            {
+                if(is_object($val) || is_array($val)
+                    || @strlen($val) == 0) unset($params[$key]);
+            }
+        }
+        if(!is_array($params)) $params = array();
+
+        // 处理 $opts
+        if (is_array($opts))
+        {
+            $mode   = !empty($opts['mode']) ? $opts['mode'] : self::$_url_mode;
+            $script = !empty($opts['script'])
+                    ? $opts['script']
+                    : $this->scriptName();
+            $url    = !empty($opts['base_uri'])
+                    ? rtrim($opts['base_uri'], '/') . '/'
+                    : $base_uri;
         }
         else
         {
-            foreach ($udi as $key => $value)
+            $mode   = self::$_url_mode;
+            $url    = $base_uri;
+            $script = $this->scriptName();
+        }
+
+        if (!is_null($this->_router) && $mode != self::URL_MODE_STANDARD)
+        {
+            // 使用路由生成 URL
+            $params = array_merge($params, $udi);
+            $path = $this->_router->url($params, $route_name);
+            if (self::$_url_mode == self::URL_MODE_PATHINFO && $path != '/')
             {
+                $url .= $this->scriptName();
+            }
+            else
+            {
+                $url = rtrim($url, '/');
+            }
+			
+            $url .= $path;
+			$match_route_rule = $this->_router->get($this->_router->lastReverseMatchedRouteName());
+			$domain = isset($match_route_rule['domain']) ? ('http://' . $match_route_rule['domain']) : ( Q::ini('app_config/APP_DOMAIN') ? ('http://www.' . Q::ini('app_config/APP_DOMAIN')) : '' );
+			$url = $domain . $url;
+        }
+        else
+        {
+            foreach (self::$_udi_defaults as $key => $value)
+            {
+                if ($udi[$key] == $value) unset($udi[$key]);
                 unset($params[$key]);
             }
-            $params = array_filter(array_merge($udi, $params), 'strlen');
-            $url = rtrim($base_uri, '/') . '/' . $this->scriptName() . '?';
-            $url .= http_build_query($params, '', '&');
+
+            $params = array_filter(array_merge($udi, $params));
+            $url .= $script;
+            if (!empty($params))
+            {
+                $url .= '?' . http_build_query($params, '', '&');
+            }
         }
 
         return $url;
     }
 
     /**
-     * 将数组形式的 UDI 转换为字符串
+     * 返回 UDI 的字符串表现形式
      *
-     * 数组形式的 UDI 由四部分组成：
+     * @param array $udi 要处理的 UDI
      *
-     * @code php
-     * $udi = array(
-     *     QContext::UDI_CONTROLLER => 'posts',
-     *     QContext::UDI_ACTION     => 'edit',
-     *     QContext::UDI_NAMESPACE  => 'admin',
-     *     QContext::UDI_MODULE     => 'cms',
-     * );
-     * // 输出 admin::posts/edit@cms
-     * echo $context->UDIString($udi);
-     * @endcode
-     *
-     * @param array $udi 数组形式的 UDI
-     *
-     * @return string 字符串形式的 UDI
+     * @return string
      */
-    function UDIString($udi)
+    function UDIString(array $udi)
     {
-        $string = '';
-        if (!is_array($udi))
-        {
-            $udi = $this->UDIArray($udi);
-        }
-
-        if (!empty($udi[self::UDI_NAMESPACE]))
-        {
-            $string = $udi[self::UDI_NAMESPACE] . '::';
-        }
-        if (!empty($udi[self::UDI_CONTROLLER]))
-        {
-            $string .= $udi[self::UDI_CONTROLLER];
-        }
-        if (!empty($udi[self::UDI_ACTION]))
-        {
-            $string .= '/' . $udi[self::UDI_ACTION];
-        }
-        if (!empty($udi[self::UDI_MODULE]))
-        {
-            $string .= '@' . $udi[self::UDI_MODULE];
-        }
-
-        return $string;
+        return "{$udi[self::UDI_NAMESPACE]}::{$udi[self::UDI_CONTROLLER]}/{$udi[self::UDI_ACTION]}@{$udi[self::UDI_MODULE]}";
     }
 
     /**
-     * 将字符串形式的 UDI 转换为数组，或者提取 UDI 中的指定部分
-     *
-     * 字符串形式的 UDI 由四部分组成：
-     *
-     * @code php
-     * $udi = admin::posts/edit@cms
-     * // 输出
-     * // array(
-     * //     controller: posts
-     * //     action:     edit
-     * //     namespace:  admin
-     * //     module:     cms
-     * // )
-     * dump($context->URIArray($udi));
-     *
-     * $udi = array(
-     *     QContext::UDI_CONTROLLER => 'posts',
-     *     QContext::UDI_ACTION     => 'edit',
-     *     QContext::UDI_NAMESPACE  => 'admin',
-     *     QContext::UDI_MODULE     => 'cms',
-     * );
-     * // 输出 posts
-     * echo $context->UDIArray($udi, QContext::UDI_CONTROLLER);
-     * @endcode
-     *
-     * @param string $udi 字符串形式的 UDI
-     * @param int $part_name 要获得 UDI 的哪一部分
-     * @param boolean $security 是否对 UDI 进行安全过滤
-     *
-     * @return array|string 数组形式的 UDI 或者 UDI 中的指定部分
-     */
-    function UDIArray($udi, $part_name = self::UDI_ALL, $security = true)
-    {
-        if (!is_array($udi))
-        {
-            if (strpos($udi, '::') !== false)
-            {
-                $arr = explode('::', $udi);
-                $namespace = array_shift($arr);
-                $udi = array_shift($arr);
-            }
-            else
-            {
-                $namespace = null;
-            }
-
-            if (strpos($udi, '@') !== false)
-            {
-                $arr = explode('@', $udi);
-                $module_name = array_pop($arr);
-                $udi = array_pop($arr);
-                if (!isset($namespace))
-                {
-                    $namespace = '';
-                }
-            }
-            else
-            {
-                $module_name = null;
-            }
-
-            $arr = explode('/', $udi);
-            $controller = array_shift($arr);
-            $action = array_shift($arr);
-
-            $return = array(
-                self::UDI_MODULE     => $module_name,
-                self::UDI_NAMESPACE  => $namespace,
-                self::UDI_CONTROLLER => $controller,
-                self::UDI_ACTION     => $action,
-            );
-        }
-        else
-        {
-            $return = $udi;
-        }
-        $return = $this->normalizeUDI($return, $security);
-
-        if ($part_name != self::UDI_ALL)
-        {
-            return $return[$part_name];
-        }
-        else
-        {
-            return $return;
-        }
-    }
-
-    /**
-     * 对数组形式的 UDI 进行检查和过滤并返回数组形式的 UDI
-     *
-     * 检查时如果没有指定控制器名或动作名，则用默认值代替。
+     * 返回规范化以后的 UDI 数组
      *
      * @code php
      * $udi = array(
@@ -1285,52 +1240,123 @@ class QContext implements ArrayAccess
      * // array(
      * //     controller: default
      * //     action:     index
-     * //     namespace:
-     * //     module:
+     * //     namespace:  default
+     * //     module:     default
+     * // )
+     * dump($context->normalizeUDI($udi));
+     *
+     * $udi = 'admin::posts/edit';
+     * // 输出
+     * // array(
+     * //     controller: posts
+     * //     action:     edit
+     * //     namespace:  admin
+     * //     module:     default
      * // )
      * dump($context->normalizeUDI($udi));
      * @endcode
      *
-     * @param array $udi 要处理的 UDI
-     * @param boolean $security 是否对 UDI 进行安全过滤
+     * 如果要返回字符串形式的 UDI，设置 $return_array 参数为 false。
+     *
+     * @param string|array $udi 要处理的 UDI
+     * @param boolean $return_array 是否返回数组形式的 UDI
      *
      * @return array 处理后的 UDI
      */
-    function normalizeUDI(array $udi, $security = true)
+    function normalizeUDI($udi, $return_array = true)
     {
-        if (empty($udi[self::UDI_CONTROLLER]))
+        if (!is_array($udi))
         {
-            $udi[self::UDI_CONTROLLER] = self::UDI_DEFAULT_CONTROLLER;
+            // 特殊处理 ".", "/" UDI解析
+            // url('.') 返回当前动作
+            // url('/') 返回当前控制器+index
+            if($udi === '.')
+            {
+                $namespace = $this->namespace;
+                $module_name = $this->module_name;
+                $controller = $this->controller;
+                $action = $this->action;
+            }
+            elseif($udi === '/')
+            {
+                $namespace = $this->namespace;
+                $module_name = $this->module_name;
+                $controller = $this->controller;
+                $action = self::$_udi_defaults[self::UDI_ACTION];
+            }
+            else
+            {
+                if (strpos($udi, '::') !== false)
+                {
+                    $arr = explode('::', $udi);
+                    $namespace = array_shift($arr);
+                    $udi = array_shift($arr);
+                }
+                else
+                {
+                    $namespace = $this->namespace;
+                }
+
+                if (strpos($udi, '@') !== false)
+                {
+                    $arr = explode('@', $udi);
+                    $module_name = array_pop($arr);
+                    $udi = array_pop($arr);
+                }
+                else
+                {
+                    $module_name = $this->module_name;
+                }
+
+                $arr = explode('/', $udi);
+                $controller = array_shift($arr);
+                $action = array_shift($arr);
+            }
+
+            $udi = array(
+                self::UDI_MODULE     => $module_name,
+                self::UDI_NAMESPACE  => $namespace,
+                self::UDI_CONTROLLER => $controller,
+                self::UDI_ACTION     => $action,
+            );
         }
 
+        if (empty($udi[self::UDI_MODULE]))
+        {
+            $udi[self::UDI_MODULE] = $this->module_name;
+        }
+        if (empty($udi[self::UDI_NAMESPACE]))
+        {
+            $udi[self::UDI_NAMESPACE] = $this->namespace;
+        }
+        if (empty($udi[self::UDI_CONTROLLER]))
+        {
+            $udi[self::UDI_CONTROLLER] = $this->controller_name;
+        }
         if (empty($udi[self::UDI_ACTION]))
         {
             $udi[self::UDI_ACTION] = self::UDI_DEFAULT_ACTION;
         }
-
-        if (!isset($udi[self::UDI_MODULE]))
+        foreach (self::$_udi_defaults as $key => $value)
         {
-            $udi[self::UDI_MODULE] = '';
-        }
-
-        if (!isset($udi[self::UDI_NAMESPACE]))
-        {
-            $udi[self::UDI_NAMESPACE] = '';
-        }
-
-        if ($security)
-        {
-            foreach ($udi as $key => $value)
+            if (empty($udi[$key]))
             {
-                $udi[$key] = preg_replace('/[^a-z0-9]+/', '', strtolower($value));
+                $udi[$key] = $value;
             }
+            else
+            {
+                $udi[$key] = preg_replace('/[^a-z0-9]+/', '', strtolower($udi[$key]));
+            }
+        }
+
+        if (!$return_array)
+        {
+            return "{$udi[self::UDI_NAMESPACE]}::{$udi[self::UDI_CONTROLLER]}/{$udi[self::UDI_ACTION]}@{$udi[self::UDI_MODULE]}";
         }
         else
         {
-            $udi = array_map('strtolower', $udi);
+            return $udi;
         }
-
-        return $udi;
     }
 
     /**
@@ -1346,17 +1372,9 @@ class QContext implements ArrayAccess
      *
      * @return string|array 对应当前请求的 UDI
      */
-    function requestUDI($return_array = false)
+    function requestUDI($return_array = true)
     {
-        $udi = array(
-            self::UDI_CONTROLLER => $this->controller_name,
-            self::UDI_ACTION     => $this->action_name,
-            self::UDI_MODULE     => $this->module_name,
-            self::UDI_NAMESPACE  => $this->namespace,
-        );
-        return ($return_array === true || $return_array == 'array')
-               ? $udi
-               : $this->UDIString($udi);
+        return $this->normalizeUDI("/{$this->action_name}", $return_array);
     }
 
     /**
@@ -1374,19 +1392,21 @@ class QContext implements ArrayAccess
      */
     function changeRequestUDI($udi)
     {
-        if (!is_array($udi))
-        {
-            $udi = $this->UDIArray($udi);
-        }
-        else
-        {
-            $udi = $this->normalizeUDI($udi);
-        }
+        $udi = $this->normalizeUDI($udi);
 
         $this->controller_name = $udi[self::UDI_CONTROLLER];
         $this->action_name     = $udi[self::UDI_ACTION];
         $this->module_name     = $udi[self::UDI_MODULE];
         $this->namespace       = $udi[self::UDI_NAMESPACE];
+
+        if ($this->module_name == self::UDI_DEFAULT_MODULE)
+        {
+            $this->module_name = null;
+        }
+        if ($this->namespace   == self::UDI_DEFAULT_NAMESPACE)
+        {
+            $this->namespace = null;
+        }
         return $this;
     }
 }

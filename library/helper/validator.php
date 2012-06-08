@@ -1,5 +1,5 @@
 <?php
-// $Id: validator.php 2017 2009-01-08 19:09:51Z dualface $
+// $Id: validator.php 2422 2009-04-14 15:01:09Z jerry $
 
 /**
  * 定义 QVlidator 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: validator.php 2017 2009-01-08 19:09:51Z dualface $
+ * @version $Id: validator.php 2422 2009-04-14 15:01:09Z jerry $
  * @package helper
  */
 
@@ -15,13 +15,21 @@
  * QValidator 提供了一组验证方法，以及调用验证方法的接口
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: validator.php 2017 2009-01-08 19:09:51Z dualface $
+ * @version $Id: validator.php 2422 2009-04-14 15:01:09Z jerry $
  * @package helper
  */
 abstract class QValidator
 {
-    const CHECK_ALL = true;
-    const STOP_ON_FAILED = false;
+    // 当有规则失败时，跳过余下的规则
+    const SKIP_ON_FAILED = 'skip_on_failed';
+    // 跳过其他规则
+    const SKIP_OTHERS    = 'skip_others';
+    // 验证通过
+    const PASSED         = true;
+    // 验证失败
+    const FAILED         = false;
+    // 检查所有规则
+    const CHECK_ALL      = true;
 
     /**
      * 本地化变量
@@ -33,27 +41,90 @@ abstract class QValidator
     /**
      * 用单个规则验证值
      *
-     * @param mixed $value
-     * @param mixed $validation
+     * 验证通过返回 true，失败返回 false。
      *
-     * @return boolean
+     * 用法：
+     *
+     * @code php
+     * if (!QValidator::validate($value, 'max', 5))
+     * {
+     *     echo 'value 不能大于 5';
+     * }
+     * @endcode
+     *
+     * $validation 参数是验证规则。
+     * 如果使用 QValidator 自带的验证规则，可以使用如下的写法：
+     *
+     * @code php
+     * QValidator::validate($value, 'between', 1, 5);
+     * @endcode
+     *
+     * 'between' 是验证规则的名字，对应于 QValidator::validate_between() 方法。
+     * 因此要使用 QValidator 的其他验证方法，将方法名中的“validate_”去掉即为验证规则名。
+     *
+     * 如果要使用自定义的验证规则，有三种写法：
+     *
+     * @code php
+     * // 使用某个类的静态方法做验证方法
+     * QValidator::validate($value, array('MyClass', 'myMethod'), $args);
+     *
+     * // 功能同上
+     * QValidator::validate($value, 'MyClass::myMethod', $args);
+     *
+     * // 使用某个对象的方法做验证方法
+     * QValidator::validate($value, array($my_obj, 'myMethod), $args);
+     * @endcode
+     *
+     * validate() 的第一个参数是要验证的值，而第二个方法是验证规则。
+     * 如果验证规则需要更多的参数，则跟在第二个参数后面提供。
+     *
+     * @param mixed $value 要验证的值
+     * @param mixed $validation 验证规则及参数
+     *
+     * @return boolean 验证结果
      */
     static function validate($value, $validation)
     {
         $args = func_get_args();
         unset($args[1]);
-        return self::validateByArgs($validation, $args);
+        $result = self::validateByArgs($validation, $args);
+        return (bool)$result;
     }
 
     /**
      * 用一组规则验证值
      *
-     * @param mixed $value
-     * @param array $validations
-     * @param boolean $check_all
-     * @param mixed $failed
+     * validateBatch() 方法对一个值应用一组验证规则，并返回最终的结果。
+     * 这一组验证规则中只要有一个验证失败，都会返回 false。
+     * 只有当所有规则都通过时，validateBatch() 方法才会返回 true。
      *
-     * @return boolean
+     * 用法：
+     *
+     * @code php
+     * $ret = QValidator::validateBatch($value, array(
+     *         array('is_int'),
+     *         array('between', 2, 6),
+     * ));
+     * @endcode
+     *
+     * $validations 参数必须是一个数组，包含多个规则，及验证规则需要的参数。
+     * 每个规则及参数都是一个单独的数组。
+     *
+     * 如果提供了 $failed 参数，则验证失败的规则会存储在 $failed 参数中：
+     *
+     * @code php
+     * $failed = null;
+     * $ret = QValidator::validateBatch($value, $validations, true, $failed);
+     *
+     * dump($failed, '所有没有验证通过的规则');
+     * @endcode
+     *
+     * @param mixed $value 要验证的值
+     * @param array $validations 由多个验证规则及参数组成的数组
+     * @param boolean $check_all 是否检查所有规则
+     * @param mixed $failed 保存验证失败的规则名
+     *
+     * @return boolean 验证结果
      */
     static function validateBatch($value, array $validations, $check_all = true, & $failed = null)
     {
@@ -64,24 +135,52 @@ abstract class QValidator
             $vf = $v[0];
             $v[0] = $value;
             $ret = self::validateByArgs($vf, $v);
-            // 如果返回 NULL，表示终止后续的验证
-            if (is_null($ret)) return $result;
 
-            if (!$ret) $failed[] = $v;
+            // 跳过余下的验证规则
+            if ($ret === self::SKIP_OTHERS)
+            {
+                return $result;
+            }
+
+            if ($ret === self::SKIP_ON_FAILED)
+            {
+                $check_all = false;
+                continue;
+            }
+
+            if ($ret) continue;
+
+            $failed[] = $v;
             $result = $result && $ret;
+
             if (!$result && !$check_all) return false;
         }
 
-        return $result;
+        return (bool)$result;
     }
 
     /**
      * 用单个规则及附加参数验证值
      *
-     * @param mixed $validation
-     * @param array $args
+     * validateByArgs() 方法与 validate() 方法功能相同，只是参数格式不同。
      *
-     * @return boolean
+     * validateByArgs() 方法的第一个参数是验证规则。
+     * 第二个参数则是包括被验证值在内，要传递给验证规则的参数。
+     *
+     * 例如：
+     *
+     * @code php
+     * // validate() 的写法
+     * QValidator::validate($value, 'max', 6);
+     *
+     * // validateByArgs() 的写法
+     * QValidator::validateByArgs('max', array($value, 6));
+     * @endcode
+     *
+     * @param mixed $validation 验证规则
+     * @param array $args 要传递给验证规则的参数
+     *
+     * @return boolean 验证结果
      */
     static function validateByArgs($validation, array $args)
     {
@@ -93,31 +192,32 @@ abstract class QValidator
                 'greater_than', 'is_alnum', 'is_alnumu', 'is_alpha', 'is_ascii',
                 'is_binary', 'is_cntrl', 'is_date', 'is_datetime', 'is_digits',
                 'is_domain', 'is_email', 'is_float', 'is_graph', 'is_int',
-                'is_ipv4', 'is_lower', 'is_octal', 'is_print', 'is_punct', 
+                'is_ipv4', 'is_lower', 'is_octal', 'is_print', 'is_punct',
                 'is_time', 'is_type', 'is_upper', 'is_whitespace', 'is_xdigits',
-                'less_or_equal', 'less_than', 'max', 'max_length', 'min', 
+                'less_or_equal', 'less_than', 'max', 'strlen', 'max_length', 'min',
                 'min_length', 'not_empty', 'not_equal', 'not_null', 'not_same',
-                'regex', 'same', 'skip_empty', 'skip_null');
+                'regex', 'same', 'skip_empty', 'skip_null', 'skip_on_failed');
             $internal_funcs = array_flip($internal_funcs);
         }
 
         // QValidator 类的验证方法
         if (!is_array($validation) && isset($internal_funcs[$validation]))
         {
-            return call_user_func_array(array(__CLASS__, 'validate_' . $validation), $args);
+            $result = call_user_func_array(array(__CLASS__, 'validate_' . $validation), $args);
         }
-
-        if (is_array($validation) || function_exists($validation))
+        elseif (is_array($validation) || function_exists($validation))
         {
-            return call_user_func_array($validation, $args);
+            $result = call_user_func_array($validation, $args);
         }
-
-        if (strpos($validation, '::'))
+        elseif (strpos($validation, '::'))
         {
-            return call_user_func_array(explode('::', $validation), $args);
+            $result = call_user_func_array(explode('::', $validation), $args);
         }
-
-        throw new Q_NotImplementedException(__($validation));
+        else
+        {
+            throw new Q_NotImplementedException(__($validation));
+        }
+        return $result;
     }
 
     /**
@@ -129,11 +229,11 @@ abstract class QValidator
      */
     static function validate_skip_empty($value)
     {
-        return (strlen($value) == 0) ? null : true;
+        return (strlen($value) == 0) ? self::SKIP_OTHERS : true;
     }
 
     /**
-     * 如果为 NULL，则跳过余下的验证
+     * 如果值为 NULL，则跳过余下的验证
      *
      * @return mixed $value
      *
@@ -141,7 +241,17 @@ abstract class QValidator
      */
     static function validate_skip_null($value)
     {
-        return (is_null($value)) ? null : true;
+        return (is_null($value)) ? self::SKIP_OTHERS : true;
+    }
+
+    /**
+     * 如果接下来的验证规则出错，则跳过后续的验证
+     *
+     * @return boolean
+     */
+    static function validate_skip_on_failed()
+    {
+        return self::SKIP_ON_FAILED;
     }
 
     /**
@@ -207,6 +317,19 @@ abstract class QValidator
     static function validate_not_same($value, $test)
     {
         return $value !== $test;
+    }
+
+    /**
+     * 验证字符串长度
+     *
+     * @param string $value
+     * @param int $len
+     *
+     * @return boolean
+     */
+    static function validate_strlen($value, $len)
+    {
+        return strlen($value) == (int)$len;
     }
 
     /**
@@ -405,7 +528,7 @@ abstract class QValidator
      */
     static function validate_is_alnumu($value)
     {
-        return preg_match('/[^a-z0-9_]/', $value) == 0;
+        return preg_match('/[^a-zA-Z0-9_]/', $value) == 0;
     }
 
     /**
@@ -537,7 +660,8 @@ abstract class QValidator
      */
     static function validate_is_email($value)
     {
-        return preg_match('/^[a-z0-9]+([._\-\+]*[a-z0-9]+)*@([a-z0-9]+[-a-z0-9]*[a-z0-9]+\.)+[a-z0-9]+$/i', $value);
+        //return preg_match('/^[a-z0-9]+[._\-\+]*@([a-z0-9]+[-a-z0-9]*\.)+[a-z0-9]+$/i', $value);
+        return preg_match('/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i', $value);
     }
 
     /**

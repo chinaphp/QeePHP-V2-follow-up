@@ -1,5 +1,5 @@
 <?php
-// $Id: acluser.php 2049 2009-01-12 08:53:47Z dualface $
+// $Id: acluser.php 2423 2009-04-21 19:59:40Z dualface $
 
 /**
  * 定义 Behavior_AclUser 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: acluser.php 2049 2009-01-12 08:53:47Z dualface $
+ * @version $Id: acluser.php 2423 2009-04-21 19:59:40Z dualface $
  * @package behavior
  */
 
@@ -59,8 +59,8 @@
  *
  * -  register_save_auto: 是否在新建用户对象时，自动保存下列信息，默认值为 false。
  *
- *    - register_ip_prop: 记录用户的 IP 地址）
- *    - register_at_prop: 记录创建时间
+ *    - register_ip_prop: 记录用户注册时的 IP 地址
+ *    - register_at_prop: 记录注册时间
  *
  * -  unique_username: 指示是否检查用户名的唯一性，默认值为 true。
  *
@@ -68,15 +68,13 @@
  *    并在尝试创建同名用户时抛出 AclUser_DuplicateUsernameException 异常。
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: acluser.php 2049 2009-01-12 08:53:47Z dualface $
+ * @version $Id: acluser.php 2423 2009-04-21 19:59:40Z dualface $
  * @package behavior
  */
 class Model_Behavior_AclUser extends QDB_ActiveRecord_Behavior_Abstract
 {
     /**
      * 插件的设置信息
-     *
-     * 可用设置包括
      *
      * @var array
      */
@@ -109,7 +107,7 @@ class Model_Behavior_AclUser extends QDB_ActiveRecord_Behavior_Abstract
      *
      * @var array
      */
-    protected $_saved_state = array();
+    private $_saved_state = array();
 
     /**
      * 绑定行为插件
@@ -118,7 +116,7 @@ class Model_Behavior_AclUser extends QDB_ActiveRecord_Behavior_Abstract
     {
         $this->_addStaticMethod('validateLogin',     array($this, 'validateLogin'));
         $this->_addStaticMethod('validateUsername',  array($this, 'validateUsername'));
-        $this->_addStaticMethod('validatePassword',  array($this, 'validatePssword'));
+        $this->_addStaticMethod('validatePassword',  array($this, 'validatePassword'));
         $this->_addStaticMethod('changePassword',    array($this, 'changePassword'));
 
         $this->_addDynamicMethod('checkPassword',    array($this, 'checkPasswordDyn'));
@@ -227,7 +225,7 @@ class Model_Behavior_AclUser extends QDB_ActiveRecord_Behavior_Abstract
         $pn = $this->_settings['username_prop'];
         $member = $this->_meta->find(array($pn => $username))->query();
 
-        return ($member-id() && $this->checkPasswordDyn($member, $password));
+        return ($member->id() && $this->checkPasswordDyn($member, $password));
     }
 
     /**

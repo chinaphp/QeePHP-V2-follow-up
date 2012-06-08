@@ -1,5 +1,5 @@
 <?php
-// $Id: table.php 1992 2009-01-08 18:18:20Z dualface $
+// $Id: table.php 2518 2009-05-25 05:18:47Z jerry $
 
 /**
  * 定义 QDB_Table 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: table.php 1992 2009-01-08 18:18:20Z dualface $
+ * @version $Id: table.php 2518 2009-05-25 05:18:47Z jerry $
  * @package database
  */
 
@@ -15,7 +15,7 @@
  * QDB_Table 类（表数据入口）封装数据表的 CRUD 操作
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: table.php 1992 2009-01-08 18:18:20Z dualface $
+ * @version $Id: table.php 2518 2009-05-25 05:18:47Z jerry $
  * @package database
  */
 class QDB_Table
@@ -331,7 +331,8 @@ class QDB_Table
         {
             $this->_setupConn();
         }
-        return (! empty($this->schema) ? $this->schema . '.' : '') . $this->prefix . $this->name;
+        return (! empty($this->schema) ? "`{$this->schema}`." : '')
+            . "`{$this->prefix}{$this->name}`";
     }
 
     /**

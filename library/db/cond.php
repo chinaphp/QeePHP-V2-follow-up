@@ -1,5 +1,5 @@
 <?php
-// $Id: cond.php 1992 2009-01-08 18:18:20Z dualface $
+// $Id: cond.php 2282 2009-03-04 13:55:35Z dualface $
 
 /**
  * 定义 QDB_Cond 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: cond.php 1992 2009-01-08 18:18:20Z dualface $
+ * @version $Id: cond.php 2282 2009-03-04 13:55:35Z dualface $
  * @package database
  */
 
@@ -15,7 +15,7 @@
  * QDB_Cond 类封装复杂的查询条件
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: cond.php 1992 2009-01-08 18:18:20Z dualface $
+ * @version $Id: cond.php 2282 2009-03-04 13:55:35Z dualface $
  * @package database
  */
 class QDB_Cond
@@ -40,13 +40,26 @@ class QDB_Cond
     function __construct()
     {
         $args = func_get_args();
-        if (! empty($args))
+        if (!empty($args))
         {
-            $this->_parts[] = array(
-                $args,
-                true
-            );
+            $this->_parts[] = array($args, true);
         }
+    }
+
+    /**
+     * 创建一个 QDB_Cond 对象，便于使用连贯接口
+     *
+     * @return QDB_Cond
+     */
+    static function create()
+    {
+        $cond = new QDB_Cond();
+        $args = func_get_args();
+        if (!empty($args))
+        {
+            $cond->appendDirect($args);
+        }
+        return $cond;
     }
 
     /**
@@ -57,9 +70,9 @@ class QDB_Cond
      *
      * @return QDB_Cond
      */
-    static function createCronDirect($cond, array $cond_args = null)
+    static function createByArgs($cond, array $cond_args = null)
     {
-        if (! is_array($cond_args))
+        if (!is_array($cond_args))
         {
             $cond_args = array();
         }

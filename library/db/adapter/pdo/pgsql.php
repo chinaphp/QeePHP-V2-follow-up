@@ -1,5 +1,5 @@
 <?php
-// $Id: pgsql.php 1948 2009-01-06 07:28:42Z yangyi $
+// $Id: pgsql.php 2175 2009-02-02 06:24:38Z yangyi $
 
 /**
  * 定义 QDB_Adapter_Pdo_Pgsql 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: pgsql.php 1948 2009-01-06 07:28:42Z yangyi $
+ * @version $Id: pgsql.php 2175 2009-02-02 06:24:38Z yangyi $
  * @package database
  */
 
@@ -15,7 +15,7 @@
  * QDB_Adapter_Pdo_Pgsql 类提供对 PostgreSQL 的支持
  *
  * @author yangyi.cn.gz@gmail.com
- * @version $Id: pgsql.php 1948 2009-01-06 07:28:42Z yangyi $
+ * @version $Id: pgsql.php 2175 2009-02-02 06:24:38Z yangyi $
  * @package database
  */
 class QDB_Adapter_Pdo_Pgsql extends QDB_Adapter_Pdo_Abstract {
@@ -236,6 +236,7 @@ class QDB_Adapter_Pdo_Pgsql extends QDB_Adapter_Pdo_Abstract {
             'double' => 'n',
             'float8' =>'n',
             'uuid' => 'c',
+            '_uuid' => 'c',
             'xml' => 'x',
             'numeric' => 'n',
         );
@@ -287,7 +288,13 @@ class QDB_Adapter_Pdo_Pgsql extends QDB_Adapter_Pdo_Abstract {
 
             $field['has_default'] = ($row['atthasdef'] == 't');
             if ($field['has_default']) {
-                $field['default'] = $rsdefa[$row['attnum']];
+                $default = $rsdefa[$row['attnum']];
+                $pos = strpos($default, '::');
+                if (false === $pos) {
+                    $field['default'] = $default;
+                } else {
+                    $field['default'] = trim(substr($default, 0, $pos), '\'"');
+                }
             }
             else
             $field['default'] = null;

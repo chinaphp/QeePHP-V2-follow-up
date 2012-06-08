@@ -1,5 +1,5 @@
 <?php
-// $Id: db.php 2008 2009-01-08 18:49:30Z dualface $
+// $Id: db.php 2229 2009-02-08 16:09:28Z dualface $
 
 /**
  * 定义 QDB 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: db.php 2008 2009-01-08 18:49:30Z dualface $
+ * @version $Id: db.php 2229 2009-02-08 16:09:28Z dualface $
  * @package database
  */
 
@@ -21,7 +21,7 @@
  * -   分析 DSN 的辅助方法。
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: db.php 2008 2009-01-08 18:49:30Z dualface $
+ * @version $Id: db.php 2229 2009-02-08 16:09:28Z dualface $
  * @package database
  */
 abstract class QDB
@@ -67,6 +67,10 @@ abstract class QDB
     const PROP  = 'prop';
 
     /**
+     * 字段元类型
+     */
+
+    /**
      * 获得一个数据库连接对象
      *
      * $dsn_name 参数指定要使用应用程序设置中的哪一个项目作为创建数据库连接的 DSN 信息。
@@ -102,6 +106,17 @@ abstract class QDB
         else
         {
             $dsn = Q::ini('db_dsn_pool/' . $dsn_name);
+        }
+
+        if (!empty($dsn['_use']))
+        {
+            $used_dsn = Q::ini("db_dsn_pool/{$dsn['_use']}");
+            $dsn = array_merge($dsn, $used_dsn);
+            unset($dsn['_use']);
+            if ($dsn_name && !empty($dsn))
+            {
+                Q::replaceIni("db_dsn_pool/{$dsn_name}", $dsn);
+            }
         }
 
         if (empty($dsn))

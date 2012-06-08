@@ -1,5 +1,5 @@
 <?php
-// $Id: select.php 1992 2009-01-08 18:18:20Z dualface $
+// $Id: select.php 2546 2009-06-10 09:18:47Z dualface $
 
 /**
  * 定义 QDB_Select 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: select.php 1992 2009-01-08 18:18:20Z dualface $
+ * @version $Id: select.php 2546 2009-06-10 09:18:47Z dualface $
  * @package database
  */
 
@@ -32,7 +32,7 @@
  * 查询对象最后通过 query() 方法来进行实际查询并返回查询结果（数组或对象）。
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: select.php 1992 2009-01-08 18:18:20Z dualface $
+ * @version $Id: select.php 2546 2009-06-10 09:18:47Z dualface $
  * @package database
  */
 class QDB_Select
@@ -423,10 +423,6 @@ class QDB_Select
      * where() 方法的参数格式是可变的，具有下列几种形式：
      *
      * @code php
-     *
-     * // 使用整数作为查询条件，等同于查询指定主键值的记录
-     * $select->where(39) 等同于 $select->where('id = ?', 39)
-     *
      * // 使用字符串做查询条件
      * $select->where('id = 1')
      *
@@ -440,7 +436,9 @@ class QDB_Select
      * $select->where('id = ? AND level_ix > ?', array($id, $level_ix))
      *
      * // 使用命名参数
-     * $select->where('id = :id AND level_ix > :level_ix', array('id' => $id, 'level_ix' => $level_ix))
+     * $select->where('id = :id AND level_ix > :level_ix', array(
+     *     'id' => $id, 'level_ix' => $level_ix
+     * ))
      *
      * // 使用名值对
      * $select->where(array('id' => $id, 'level_ix' => $level_ix));
@@ -1067,7 +1065,7 @@ class QDB_Select
     function getCount($field = '*', $alias = 'row_count')
     {
         $row = $this->count($field, $alias)->query();
-        return intval($row[$alias]);
+        return $row[$alias];
     }
 
     /**
@@ -1094,8 +1092,7 @@ class QDB_Select
     function getAvg($field, $alias = 'avg_value')
     {
         $row = $this->avg($field, $alias)->query();
-        $v = $row[$alias];
-        return (strpos($v, '.') === false) ? intval($v) : floatval($v);
+        return $row[$alias];
     }
 
     /**
@@ -1122,8 +1119,7 @@ class QDB_Select
     function getMax($field, $alias = 'max_value')
     {
         $row = $this->max($field, $alias)->query();
-        $v = $row[$alias];
-        return (strpos($v, '.') === false) ? intval($v) : floatval($v);
+        return $row[$alias];
     }
     /**
      * 统计最小值
@@ -1149,8 +1145,7 @@ class QDB_Select
     function getMin($field, $alias = 'min_value')
     {
         $row = $this->min($field, $alias)->query();
-        $v = $row[$alias];
-        return (strpos($v, '.') === false) ? intval($v) : floatval($v);
+        return $row[$alias];
     }
 
     /**
@@ -1177,8 +1172,7 @@ class QDB_Select
     function getSum($field, $alias = 'sum_value')
     {
         $row = $this->sum($field, $alias)->query();
-        $v = $row[$alias];
-        return (strpos($v, '.') === false) ? intval($v) : floatval($v);
+        return $row[$alias];
     }
 
     /**
@@ -1340,6 +1334,51 @@ class QDB_Select
     }
 
     /**
+     * 执行查询并返回指定数量的结果
+     *
+     * @param int $num
+     * @param array|string $included_links
+     *
+     * @return mixed
+     */
+    function get($num = null, $included_links = null)
+    {
+        if (!is_null($num))
+        {
+            return $this->top($num)->query($included_links);
+        }
+        else
+        {
+            return $this->query($included_links);
+        }
+    }
+    /**
+     * 返回符合主键的一个结果
+     *
+     * @param string|int $id
+     * @param array|string $included_links
+     * 
+     * @return mixed
+     */
+    function getById($id,$included_links = null){
+    	if ($this->_meta->idname_count !=1){
+    		throw new QDB_Select_Exception(__('getById 方法只适用于单一主键模型'));
+    	}
+    	return $this->where(array(reset($this->_meta->idname) => $id))->getOne($included_links);
+    }
+    /**
+     * 仅返回一个结果
+     *
+     * @param array|string $included_links
+     *
+     * @return mixed
+     */
+    function getOne($included_links = null)
+    {
+        return $this->one()->query($included_links);
+    }
+
+    /**
      * 执行查询并返回所有结果，等同于 ->all()->query()
      *
      * @param array|string $included_links
@@ -1445,6 +1484,59 @@ class QDB_Select
         }
 
         return implode(' ', $sql);
+    }
+
+    /**
+     * 魔法方法
+     *
+     * @param string $method
+     * @param array $args
+     *
+     * @return mixed
+     */
+    function __call($method, array $args)
+    {
+        if (strncasecmp($method,'get',3) === 0)
+        {
+            $method = substr($method, 3);
+
+            //support get10start3 etc.
+            if (strpos(strtolower($method), 'start') !== false)
+            {
+                $arr = explode('start', strtolower($method));
+                $num = intval(array_shift($arr));
+                $offset = intval(array_shift($arr));
+                return $this->limit($offset - 1, $num);
+                
+            // support getByName getByNameAndSex etc.
+            }elseif (strncasecmp($method,'By',2) === 0){
+            	$method=substr($method,2);
+            	$keys=explode('And',$method);
+            	if (count($keys) != count($args)){
+            		throw new QDB_Select_Exception(__('参数数量不对应'));
+            	}
+            	return $this->where(array_change_key_case(array_combine($keys,$args),CASE_LOWER))->getOne();
+            	
+            // support getAllByNameAndSex etc.
+            }elseif (strncasecmp($method,'AllBy',5) === 0){
+            	$method=substr($method,5);
+            	$keys=explode('And',$method);
+            	if (count($keys) != count($args)){
+            		throw new QDB_Select_Exception(__('参数数量不对应'));
+            	}
+            	return $this->where(array_change_key_case(array_combine($keys,$args),CASE_LOWER))->getAll();            	
+            }
+
+            return $this->top(intval(substr($method, 3)));
+            
+        // Article::find()->hot()->getOne()	,static method `find_on_hot` must define in Article model 
+        }elseif (method_exists($this->_meta->class_name,'find_'.$method)){
+        	array_unshift($args,$this);
+        	return call_user_func_array(array($this->_meta->class_name,'find_'.$method),$args);
+        }
+        
+        // LC_MSG: QDB_Select 没有实现魔法方法 "%s".
+        throw new Q_NotImplementedException(__('QDB_Select 没有实现魔法方法 "%s".', $method));
     }
 
     /**
@@ -1618,6 +1710,10 @@ class QDB_Select
         $no_lazy_query = Q::normalize($this->_query_params[self::NON_LAZY_QUERY]);
         while (($row = $handle->fetchRow()))
         {
+            if ($this->_meta->inherit_type_field)
+            {
+                $class_name = $row[$this->_meta->inherit_type_field];
+            }
             $obj = new $class_name($row, QDB::FIELD, true);
 
             foreach ($no_lazy_query as $assoc)
@@ -1656,7 +1752,7 @@ class QDB_Select
         {
             if ($this->_query_params[self::AS_COLL])
             {
-                return QDB_ActiveRecord_Association_Coll::createFromArray($rowset, $class_name);
+                return QDB_ActiveRecord_Association_Coll::createFromArray($rowset, $this->_meta->class_name);
             }
             else
             {
@@ -2031,7 +2127,7 @@ class QDB_Select
         // 处理查询条件
         if (! ($cond instanceof QDB_Cond))
         {
-            $cond = QDB_Cond::createCronDirect($cond, $cond_args);
+            $cond = QDB_Cond::createByArgs($cond, $cond_args);
         }
         /* @var $cond QDB_Cond */
         $where_sql = $cond->formatToString($this->_conn, $alias, $this->_columns_mapping);
@@ -2055,33 +2151,18 @@ class QDB_Select
      */
     protected function _addCols($table_name, $cols)
     {
-        if (! is_array($cols))
-        {
-            $cols = array(
-                $cols
-            );
-        }
-
-        if ($table_name == null)
-        {
-            $table_name = '';
-        }
+        $cols = Q::normalize($cols);
+        if (is_null($table_name)) $table_name = '';
 
         $m = null;
-        foreach (array_filter($cols) as $alias => $col)
+        foreach ($cols as $alias => $col)
         {
             if (is_string($col))
             {
                 // 将包含多个字段的字符串打散
-                $_cols = explode(',', $col);
-                foreach ($_cols as $col)
+                foreach (Q::normalize($col) as $col)
                 {
                     $current_table_name = $table_name;
-                    $col = trim($col);
-                    if (empty($col))
-                    {
-                        continue;
-                    }
                     // 检查是不是 "字段名 AS 别名"这样的形式
                     if (preg_match('/^(.+)\s+' . self::SQL_AS . '\s+(.+)$/i', $col, $m))
                     {
@@ -2131,7 +2212,7 @@ class QDB_Select
             {
                 return $this;
             }
-            $cond = QDB_Cond::createCronDirect($cond, $args);
+            $cond = QDB_Cond::createByArgs($cond, $args);
         }
 
         if (is_null($this->_parts[$part_type]))
@@ -2245,9 +2326,13 @@ class QDB_Select
         case QDB::HAS_ONE:
         case QDB::BELONGS_TO:
             $key = "{$assoc->type}-{$assoc_table_name}";
-            if (! isset($this->_joined_tables[$key]))
-            {
-                $this->joinInner($assoc_table_name, '', "{$assoc_table_name}.{$assoc->target_key} = " . "{$current_table_name}.{$assoc->source_key}");
+            if (! isset($this->_joined_tables[$key])) {
+                // 支持额外join 条件设定，用于关联查询
+                $join_cond_extra = '';
+                if (isset($this->_meta->props[$assoc->mapping_name]['assoc_params']['join_cond_extra'])) {
+                    $join_cond_extra = " AND " . trim($this->_meta->props[$assoc->mapping_name]['assoc_params']['join_cond_extra']);
+                }
+                $this->joinInner($assoc_table_name, '', "{$assoc_table_name}.{$assoc->target_key} = " . "{$current_table_name}.{$assoc->source_key}{$join_cond_extra}");
                 $this->_joined_tables[$key] = true;
             }
             break;

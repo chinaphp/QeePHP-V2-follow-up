@@ -1,5 +1,5 @@
 <?php
-// $Id: default_config.php 1937 2009-01-05 19:09:40Z dualface $
+// $Id: default_config.php 2340 2009-03-25 17:00:26Z dualface $
 
 return array
 (
@@ -85,7 +85,12 @@ return array
     /**
      * url 参数的传递模式，可以是标准、PATHINFO、URL 重写等模式
      */
-    'dispatcher_url_mode'            => 'standard',
+    'dispatcher_url_mode'       => 'standard',
+
+    /**
+     * 路由规则的缓存时间
+     */
+    'routes_cache_lifetime'     => 1,
 
     // }}}
 
@@ -150,7 +155,7 @@ return array
     /**
      * 默认的时区设置
      */
-    'l10n_default_timezone' => 'Asia/ChongQing',
+    'l10n_default_timezone' => 'Asia/Shanghai',
 
     // }}}
 
@@ -172,7 +177,7 @@ return array
      *
      * 更小的缓存块可以节约内存，但写入日志的次数更频繁，性能更低。
      */
-    'log_cache_chunk_size' => 512,  // 512KB
+    'log_cache_chunk_size' => 64,  // 64KB
 
     /**
      * 保存日志文件的目录

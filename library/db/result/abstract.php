@@ -1,5 +1,5 @@
 <?php
-// $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+// $Id: abstract.php 2539 2009-06-04 08:09:55Z yangyi $
 
 /**
  * 定义 QDB_Result_Abstract 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: abstract.php 2539 2009-06-04 08:09:55Z yangyi $
  * @package database
  */
 
@@ -15,7 +15,7 @@
  * QDB_Result_Abstract 是封装查询结果对象的抽象基础类
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: abstract.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: abstract.php 2539 2009-06-04 08:09:55Z yangyi $
  * @package database
  */
 abstract class QDB_Result_Abstract
@@ -228,5 +228,31 @@ abstract class QDB_Result_Abstract
 
 		return $data;
 	}
+
+    /**
+     * 以对象方式返回数据
+     * 如果设置了return_first为true，直接返回单个对象，否则返回对象集合
+     * 更多讨论，参看：http://qeephp.com/bbs/thread-7551-1-1.html
+     * 
+     * @param string $class_name 
+     * @param boolean $return_first 
+     * @access public
+     * @return mixed
+     */
+    function fetchObject($class_name, $return_first = false) {
+        $objs = array();
+        $is_ar = is_subclass_of($class_name, 'QDB_ActiverRecord_Abstract');
+
+        while ($row = $this->fetchRow()) {
+            $obj = $is_ar
+                 ? new $class_name($row, QDB::FIELD, true)
+                 : new $class_name($row);
+
+            if ($return_first) return $obj;
+            $objs[] = $obj;
+        }
+
+        return QColl::createFromArray($objs, $class_name);
+    }
 }
 

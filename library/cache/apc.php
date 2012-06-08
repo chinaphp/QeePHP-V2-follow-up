@@ -1,5 +1,5 @@
 <?php
-// $Id: apc.php 1987 2009-01-08 18:03:35Z dualface $
+// $Id: apc.php 2289 2009-03-06 06:05:31Z dualface $
 
 /**
  * 定义 QCache_APC 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: apc.php 1987 2009-01-08 18:03:35Z dualface $
+ * @version $Id: apc.php 2289 2009-03-06 06:05:31Z dualface $
  * @package cache
  */
 
@@ -17,7 +17,7 @@
  * 不过由于 APC 扩展本身的问题，频繁写入 APC 缓存可能导致 PHP 进程崩溃 :-(
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: apc.php 1987 2009-01-08 18:03:35Z dualface $
+ * @version $Id: apc.php 2289 2009-03-06 06:05:31Z dualface $
  * @package cache
  */
 class QCache_APC
@@ -43,8 +43,9 @@ class QCache_APC
 	 */
 	function __construct(array $default_policy = null)
 	{
-		if (isset($default_policy['life_time'])) {
-			$this->_default_policy['life_time'] = int($default_policy['life_time']);
+		if (isset($default_policy['life_time']))
+        {
+			$this->_default_policy['life_time'] = (int)$default_policy['life_time'];
 		}
 	}
 

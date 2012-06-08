@@ -1,5 +1,5 @@
 <?php
-// $Id: mysql.php 1937 2009-01-05 19:09:40Z dualface $
+// $Id: mysql.php 2403 2009-04-07 03:52:48Z dualface $
 
 /**
  * 定义 QDB_Adapter_Mysql 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: mysql.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: mysql.php 2403 2009-04-07 03:52:48Z dualface $
  * @package database
  */
 
@@ -15,7 +15,7 @@
  * QDB_Mysql 提供了对 mysql 数据库的支持
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: mysql.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: mysql.php 2403 2009-04-07 03:52:48Z dualface $
  * @package database
  */
 class QDB_Adapter_Mysql extends QDB_Adapter_Abstract
@@ -106,6 +106,14 @@ class QDB_Adapter_Mysql extends QDB_Adapter_Abstract
 
     function qstr($value)
     {
+        if (is_array($value))
+        {
+            foreach ($value as $offset => $v)
+            {
+                $value[$offset] = $this->qstr($v);
+            }
+            return $value;
+        }
         if (is_int($value)) { return $value; }
         if (is_bool($value))
         {
@@ -394,18 +402,14 @@ class QDB_Adapter_Mysql extends QDB_Adapter_Abstract
             $field['binary'] = (strpos($type, 'blob') !== false);
             $field['unsigned'] = (strpos($type, 'unsigned') !== false);
 
+            $field['has_default'] = $field['default'] = null;
             if (! $field['binary'])
             {
                 $d = $row['default'];
-                if ($d != '' && strtolower($d) != 'null')
+                if (!is_null($d) && strtolower($d) != 'null')
                 {
                     $field['has_default'] = true;
                     $field['default'] = $d;
-                }
-                else
-                {
-                    $field['has_default'] = false;
-                    $field['default'] = null;
                 }
             }
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: array.php 1937 2009-01-05 19:09:40Z dualface $
+// $Id: array.php 2286 2009-03-05 08:50:23Z dualface $
 
 /**
  * 定义 Helper_Array 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: array.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: array.php 2286 2009-03-05 08:50:23Z dualface $
  * @package helper
  */
 
@@ -15,7 +15,7 @@
  * Helper_Array 类提供了一组简化数组操作的方法 
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: array.php 1937 2009-01-05 19:09:40Z dualface $
+ * @version $Id: array.php 2286 2009-03-05 08:50:23Z dualface $
  * @package helper
  */
 abstract class Helper_Array
@@ -302,18 +302,20 @@ abstract class Helper_Array
     static function treeToArray($tree, $key_childrens = 'childrens')
     {
         $ret = array();
-        if (isset($tree[$key_childrens]) && is_array($tree[$key_childrens])) 
+        if (isset($tree[$key_childrens]) && is_array($tree[$key_childrens]))
         {
-            foreach ($tree[$key_childrens] as $child) 
+            $childrens = $tree[$key_childrens];
+            unset($tree[$key_childrens]);
+            $ret[] = $tree;
+            foreach ($childrens as $node) 
             {
-                $ret = array_merge($ret, self::treeToArray($child, $key_childrens));
+                $ret = array_merge($ret, self::treeToArray($node, $key_childrens));
             }
-            unset($node[$key_childrens]);
-            $ret[] = $node;
         }
         else
         {
-            $ret[] = $node;
+            unset($tree[$key_childrens]);
+            $ret[] = $tree;
         }
         return $ret;
     }

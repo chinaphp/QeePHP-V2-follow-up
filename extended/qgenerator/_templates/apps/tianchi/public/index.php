@@ -11,5 +11,7 @@ $app_config = require(dirname(__FILE__) . '/../config/boot.php');
 require $app_config['QEEPHP_DIR'] . '/library/q.php';
 require $app_config['APP_DIR'] . '/myapp.php';
 
-echo MyApp::instance($app_config)->dispatching();
+$ret = MyApp::instance($app_config)->dispatching();
+if (is_string($ret)) echo $ret;
 
+return $ret;

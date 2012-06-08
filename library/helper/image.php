@@ -1,4 +1,5 @@
 <?php
+
 // $Id: image.php 1937 2009-01-05 19:09:40Z dualface $
 
 /**
@@ -25,6 +26,7 @@
  */
 abstract class Helper_Image
 {
+
     /**
      * 从指定文件创建 Helper_ImageGD 对象
      *
@@ -53,23 +55,23 @@ abstract class Helper_Image
     {
         $fileext = trim(strtolower($fileext), '.');
         $ext2functions = array(
-            'jpg'  => 'imagecreatefromjpeg',
+            'jpg' => 'imagecreatefromjpeg',
             'jpeg' => 'imagecreatefromjpeg',
-            'png'  => 'imagecreatefrompng',
-            'gif'  => 'imagecreatefromgif'
+            'png' => 'imagecreatefrompng',
+            'gif' => 'imagecreatefromgif'
         );
 
         if (!isset($ext2functions[$fileext]))
         {
-        	throw new Q_NotImplementedException(__('imagecreateform' . $fileext));
+            throw new Q_NotImplementedException(__('imagecreateform' . $fileext));
         }
 
         $handle = call_user_func($ext2functions[$fileext], $filename);
         return new Helper_ImageGD($handle);
     }
 
-	/**
-	 * 将 16 进制颜色值转换为 rgb 值
+    /**
+     * 将 16 进制颜色值转换为 rgb 值
      *
      * 用法：
      * @code php
@@ -80,11 +82,11 @@ abstract class Helper_Image
      *
      * @param string $color 颜色值
      * @param string $default 使用无效颜色值时返回的默认颜色
-	 *
-	 * @return array 由 RGB 三色组成的数组
-	 */
-	static function hex2rgb($color, $default = 'ffffff')
-	{
+     *
+     * @return array 由 RGB 三色组成的数组
+     */
+    static function hex2rgb($color, $default = 'ffffff')
+    {
         $hex = trim($color, '#&Hh');
         $len = strlen($hex);
         if ($len == 3)
@@ -97,7 +99,8 @@ abstract class Helper_Image
         }
         $dec = hexdec($hex);
         return array(($dec >> 16) & 0xff, ($dec >> 8) & 0xff, $dec & 0xff);
-	}
+    }
+
 }
 
 /**
@@ -109,6 +112,7 @@ abstract class Helper_Image
  */
 class Helper_ImageGD
 {
+
     /**
      * GD 资源句柄
      *
@@ -131,7 +135,7 @@ class Helper_ImageGD
      */
     function __destruct()
     {
-    	$this->destroy();
+        $this->destroy();
     }
 
     /**
@@ -147,9 +151,8 @@ class Helper_ImageGD
         if (is_null($this->_handle)) return $this;
 
         $dest = imagecreatetruecolor($width, $height);
-        imagecopyresized($dest, $this->_handle, 0, 0, 0, 0,
-            $width, $height,
-            imagesx($this->_handle), imagesy($this->_handle));
+        imagecopyresized($dest, $this->_handle, 0, 0, 0, 0, $width, $height,
+                         imagesx($this->_handle), imagesy($this->_handle));
         imagedestroy($this->_handle);
         $this->_handle = $dest;
         return $this;
@@ -167,9 +170,8 @@ class Helper_ImageGD
     {
         if (is_null($this->_handle)) return $this;
         $dest = imagecreatetruecolor($width, $height);
-        imagecopyresampled($dest, $this->_handle, 0, 0, 0, 0,
-            $width, $height,
-            imagesx($this->_handle), imagesy($this->_handle));
+        imagecopyresampled($dest, $this->_handle, 0, 0, 0, 0, $width, $height,
+                           imagesx($this->_handle), imagesy($this->_handle));
         imagedestroy($this->_handle);
         $this->_handle = $dest;
         return $this;
@@ -205,7 +207,8 @@ class Helper_ImageGD
      *
      * @return Helper_ImageGD 返回 Helper_ImageGD 对象本身，实现连贯接口
      */
-    function resizeCanvas($width, $height, $pos = 'center', $bgcolor = '0xffffff')
+    function resizeCanvas($width, $height, $pos = 'center',
+                          $bgcolor = '0xffffff')
     {
         if (is_null($this->_handle)) return $this;
 
@@ -216,44 +219,44 @@ class Helper_ImageGD
         // 根据 pos 属性来决定如何定位原始图片
         switch (strtolower($pos))
         {
-        case 'left':
-            $ox = 0;
-            $oy = ($height - $sy) / 2;
-            break;
-        case 'right':
-            $ox = $width - $sx;
-            $oy = ($height - $sy) / 2;
-            break;
-        case 'top':
-            $ox = ($width - $sx) / 2;
-            $oy = 0;
-            break;
-        case 'bottom':
-            $ox = ($width - $sx) / 2;
-            $oy = $height - $sy;
-            break;
-        case 'top-left':
-        case 'left-top':
-            $ox = $oy = 0;
-            break;
-        case 'top-right':
-        case 'right-top':
-            $ox = $width - $sx;
-            $oy = 0;
-            break;
-        case 'bottom-left':
-        case 'left-bottom':
-            $ox = 0;
-            $oy = $height - $sy;
-            break;
-        case 'bottom-right':
-        case 'right-bottom':
-            $ox = $width - $sx;
-            $oy = $height - $sy;
-            break;
-        default:
-            $ox = ($width - $sx) / 2;
-            $oy = ($height - $sy) / 2;
+            case 'left':
+                $ox = 0;
+                $oy = ($height - $sy) / 2;
+                break;
+            case 'right':
+                $ox = $width - $sx;
+                $oy = ($height - $sy) / 2;
+                break;
+            case 'top':
+                $ox = ($width - $sx) / 2;
+                $oy = 0;
+                break;
+            case 'bottom':
+                $ox = ($width - $sx) / 2;
+                $oy = $height - $sy;
+                break;
+            case 'top-left':
+            case 'left-top':
+                $ox = $oy = 0;
+                break;
+            case 'top-right':
+            case 'right-top':
+                $ox = $width - $sx;
+                $oy = 0;
+                break;
+            case 'bottom-left':
+            case 'left-bottom':
+                $ox = 0;
+                $oy = $height - $sy;
+                break;
+            case 'bottom-right':
+            case 'right-bottom':
+                $ox = $width - $sx;
+                $oy = $height - $sy;
+                break;
+            default:
+                $ox = ($width - $sx) / 2;
+                $oy = ($height - $sy) / 2;
         }
 
         list ($r, $g, $b) = Helper_Image::hex2rgb($bgcolor, '0xffffff');
@@ -325,17 +328,18 @@ class Helper_ImageGD
 
         $default_options = array(
             'fullimage' => false,
-            'pos'       => 'center',
-            'bgcolor'   => '0xfff',
-            'enlarge'   => false,
-            'reduce'    => true,
+            'pos' => 'center',
+            'bgcolor' => '0xfff',
+            'enlarge' => false,
+            'reduce' => true,
         );
         $options = array_merge($default_options, $options);
 
         // 创建目标图像
         $dest = imagecreatetruecolor($width, $height);
         // 填充背景色
-        list ($r, $g, $b) = Helper_Image::hex2rgb($options['bgcolor'], '0xffffff');
+        list ($r, $g, $b) = Helper_Image::hex2rgb($options['bgcolor'],
+                                                  '0xffffff');
         $bgcolor = imagecolorallocate($dest, $r, $g, $b);
         imagefilledrectangle($dest, 0, 0, $width, $height, $bgcolor);
         imagecolordeallocate($dest, $bgcolor);
@@ -367,48 +371,49 @@ class Helper_ImageGD
         // 根据 pos 属性来决定如何定位
         switch (strtolower($options['pos']))
         {
-        case 'left':
-            $dst_x = 0;
-            $dst_y = ($height - $dst_h) / 2;
-            break;
-        case 'right':
-            $dst_x = $width - $dst_w;
-            $dst_y = ($height - $dst_h) / 2;
-            break;
-        case 'top':
-            $dst_x = ($width - $dst_w) / 2;
-            $dst_y = 0;
-            break;
-        case 'bottom':
-            $dst_x = ($width - $dst_w) / 2;
-            $dst_y = $height - $dst_h;
-            break;
-        case 'top-left':
-        case 'left-top':
-            $dst_x = $dst_y = 0;
-            break;
-        case 'top-right':
-        case 'right-top':
-            $dst_x = $width - $dst_w;
-            $dst_y = 0;
-            break;
-        case 'bottom-left':
-        case 'left-bottom':
-            $dst_x = 0;
-            $dst_y = $height - $dst_h;
-            break;
-        case 'bottom-right':
-        case 'right-bottom':
-            $dst_x = $width - $dst_w;
-            $dst_y = $height - $dst_h;
-            break;
-        case 'center':
-        default:
-            $dst_x = ($width - $dst_w) / 2;
-            $dst_y = ($height - $dst_h) / 2;
+            case 'left':
+                $dst_x = 0;
+                $dst_y = ($height - $dst_h) / 2;
+                break;
+            case 'right':
+                $dst_x = $width - $dst_w;
+                $dst_y = ($height - $dst_h) / 2;
+                break;
+            case 'top':
+                $dst_x = ($width - $dst_w) / 2;
+                $dst_y = 0;
+                break;
+            case 'bottom':
+                $dst_x = ($width - $dst_w) / 2;
+                $dst_y = $height - $dst_h;
+                break;
+            case 'top-left':
+            case 'left-top':
+                $dst_x = $dst_y = 0;
+                break;
+            case 'top-right':
+            case 'right-top':
+                $dst_x = $width - $dst_w;
+                $dst_y = 0;
+                break;
+            case 'bottom-left':
+            case 'left-bottom':
+                $dst_x = 0;
+                $dst_y = $height - $dst_h;
+                break;
+            case 'bottom-right':
+            case 'right-bottom':
+                $dst_x = $width - $dst_w;
+                $dst_y = $height - $dst_h;
+                break;
+            case 'center':
+            default:
+                $dst_x = ($width - $dst_w) / 2;
+                $dst_y = ($height - $dst_h) / 2;
         }
 
-        imagecopyresampled($dest,  $this->_handle, $dst_x, $dst_y, 0, 0, $dst_w, $dst_h, $full_w, $full_h);
+        imagecopyresampled($dest, $this->_handle, $dst_x, $dst_y, 0, 0, $dst_w,
+                           $dst_h, $full_w, $full_h);
         imagedestroy($this->_handle);
         $this->_handle = $dest;
 
@@ -452,6 +457,45 @@ class Helper_ImageGD
         imagegif($this->_handle, $filename);
     }
 
+    function data($ext)
+    {
+        
+        // 输出图像
+        switch (strtolower($ext))
+        {
+            case 'png':
+                ob_start();
+                imagepng($this->_handle);
+                $data = ob_get_clean();
+                break;
+
+            case 'gif':
+                ob_start();
+                imagegif($this->_handle);
+                $data = ob_get_clean();
+                break;
+
+            case 'jpg':
+            default:
+                ob_start();
+                imagejpeg($this->_handle);
+                $data = ob_get_clean();
+        }
+
+        imagedestroy($this->_handle);
+        return $data;
+    }
+
+    function width()
+    {
+        return imagesx($this->_handle);
+    }
+
+    function height()
+    {
+        return imagesy($this->_handle);
+    }
+
     /**
      * 销毁内存中的图像
      *
@@ -459,12 +503,13 @@ class Helper_ImageGD
      */
     function destroy()
     {
-    	if (!$this->_handle)
-    	{
+        if (!$this->_handle)
+        {
             @imagedestroy($this->_handle);
-    	}
+        }
         $this->_handle = null;
         return $this;
     }
+
 }
 

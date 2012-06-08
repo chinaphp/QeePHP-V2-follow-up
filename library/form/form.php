@@ -1,5 +1,5 @@
 <?php
-// $Id: form.php 1999 2009-01-08 18:22:39Z dualface $
+// $Id: form.php 2401 2009-04-07 03:50:08Z dualface $
 
 /**
  * 定义 QForm 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: form.php 1999 2009-01-08 18:22:39Z dualface $
+ * @version $Id: form.php 2401 2009-04-07 03:50:08Z dualface $
  * @package form
  */
 
@@ -17,7 +17,7 @@
  * 有关 QForm 类的详细使用，请参考开发者手册的相关章节。
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: form.php 1999 2009-01-08 18:22:39Z dualface $
+ * @version $Id: form.php 2401 2009-04-07 03:50:08Z dualface $
  * @package form
  */
 class QForm extends QForm_Group
@@ -60,6 +60,7 @@ class QForm extends QForm_Group
         parent::__construct($id, $attrs);
         $this->action = $action;
         $this->method = $method;
+        $this->_nested_name = '';
         $this->enctype = self::ENCTYPE_URLENCODED;
         $this->_after_created();
     }
@@ -93,6 +94,27 @@ class QForm extends QForm_Group
     }
 
     /**
+     * 从一个 YAML 文件载入表单设置和元素
+     *
+     * @param string $filename 要载入的配置文件
+     * @param bollean $cached 是否缓存配置文件
+     *
+     * @return QForm 返回表单对象本身，实现连贯接口
+     */
+    function loadFromConfigFile($filename, $cached = true)
+    {
+        if ($cached)
+        {
+            $config = Helper_YAML::loadCached($filename);
+        }
+        else
+        {
+            $config = Helper_YAML::load($filename);
+        }
+        return $this->loadFromConfig($config);
+    }
+
+    /**
      * 导入数据并验证，返回验证结果
      *
      * 通过 validate() 方法，数据将被导入表单对象。
@@ -117,9 +139,18 @@ class QForm extends QForm_Group
     function validate($data, & $failed = null)
     {
         $this->_before_validate($data);
-        $is_valid = parent::validate($data, $failed);
+        parent::validate($data, $failed);
         $this->_after_validate($data);
 
+        $is_valid = $this->isValid();
+        if ($is_valid)
+        {
+            $this->_after_validate_successed();
+        }
+        else
+        {
+            $this->_after_validate_failed();
+        }
         return $is_valid;
     }
 
@@ -135,7 +166,7 @@ class QForm extends QForm_Group
      *
      * @param mixed $data 要验证的数据
      */
-    protected function _before_validate($data)
+    protected function _before_validate(& $data)
     {
     }
 
@@ -144,9 +175,22 @@ class QForm extends QForm_Group
      *
      * @param mixed $data 要验证的数据
      */
-    protected function _after_validate($data)
+    protected function _after_validate(& $data)
     {
     }
 
+    /**
+     * 当表单验证失败时调用的事件方法
+     */
+    protected function _after_validate_failed()
+    {
+    }
+
+    /**
+     * 当表单验证成功时调用的事件方法
+     */
+    protected function _after_validate_successed()
+    {
+    }
 }
 

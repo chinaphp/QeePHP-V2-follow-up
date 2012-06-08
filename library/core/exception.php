@@ -1,5 +1,5 @@
 <?php
-// $Id: exception.php 2018 2009-01-08 19:33:28Z dualface $
+// $Id: exception.php 2159 2009-01-25 12:43:25Z dualface $
 
 /**
  * 定义 QException 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: exception.php 2018 2009-01-08 19:33:28Z dualface $
+ * @version $Id: exception.php 2159 2009-01-25 12:43:25Z dualface $
  * @package core
  */
 
@@ -15,7 +15,7 @@
  * QException 是 QeePHP 所有异常的基础类
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: exception.php 2018 2009-01-08 19:33:28Z dualface $
+ * @version $Id: exception.php 2159 2009-01-25 12:43:25Z dualface $
  * @package core
  */
 class QException extends Exception
@@ -28,7 +28,7 @@ class QException extends Exception
      */
     function __construct($message, $code = 0)
     {
-        parent::__construct($message, intval($code));
+        parent::__construct($message, $code);
     }
 
     /**

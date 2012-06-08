@@ -1,5 +1,5 @@
 <?php
-// $Id: yaml.php 2127 2009-01-21 07:16:22Z dualface $
+// $Id: yaml.php 2392 2009-04-05 13:54:14Z lonestone $
 
 /**
  * 定义 Helper_YAML 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: yaml.php 2127 2009-01-21 07:16:22Z dualface $
+ * @version $Id: yaml.php 2392 2009-04-05 13:54:14Z lonestone $
  * @package helper
  */
 
@@ -15,7 +15,7 @@
  * Helper_YAML 提供 yaml 文档的解析和输出服务
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: yaml.php 2127 2009-01-21 07:16:22Z dualface $
+ * @version $Id: yaml.php 2392 2009-04-05 13:54:14Z lonestone $
  * @package helper
  */
 abstract class Helper_YAML
@@ -60,7 +60,7 @@ abstract class Helper_YAML
         }
         else
         {
-            $cache = self::singleton($cache_backend);
+            $cache = Q::singleton($cache_backend);
         }
 
         /* @var $cache QCache_File */
@@ -140,9 +140,9 @@ abstract class Helper_YAML
      */
     static function parse($input, array $replace = null)
     {
-        $input = str_replace("\r\n", "\n", $input);
-        $input = str_replace("\r", "\n", $input);
-        $yaml = Spyc::YAMLLoad($input);
+        $parser = Q::singleton('sfYamlParser');
+        $yaml = $parser->parse($input);
+
         if (!is_array($yaml)) $yaml = array();
 
         if (!empty($replace))
@@ -163,7 +163,8 @@ abstract class Helper_YAML
      */
     static function dump($data, $indent = 2)
     {
-    	return "# <?php die(); ?>\n\n" . Spyc::YAMLDump($data, $indent) . "\n";
+        $dumper = Q::singleton('sfYamlDumper');
+        return "# <?php die(); ?>\n\n" . $dumper->dump($data, 1) . "\n";
     }
 
     /**

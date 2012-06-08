@@ -1,5 +1,5 @@
 <?php
-// $Id: imgcode.php 2099 2009-01-18 20:43:39Z dualface $
+// $Id: imgcode.php 2524 2009-05-27 05:30:30Z jerry $
 
 /**
  * 定义 Helper_ImgCode 类、Helper_ImgCodeSimple 类和 Helper_ImgCodeTTF 类
@@ -7,7 +7,7 @@
  * @link http://qeephp.com/
  * @copyright Copyright (c) 2006-2009 Qeeyuan Inc. {@link http://www.qeeyuan.com}
  * @license New BSD License {@link http://qeephp.com/license/}
- * @version $Id: imgcode.php 2099 2009-01-18 20:43:39Z dualface $
+ * @version $Id: imgcode.php 2524 2009-05-27 05:30:30Z jerry $
  * @package helper
  */
 
@@ -15,7 +15,7 @@
  * Helper_ImgCode 类提供验证码生成和检验的接口
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: imgcode.php 2099 2009-01-18 20:43:39Z dualface $
+ * @version $Id: imgcode.php 2524 2009-05-27 05:30:30Z jerry $
  * @package helper
  */
 class Helper_ImgCode
@@ -223,7 +223,7 @@ class Helper_ImgCode
  * Helper_ImgCodeSimple 实现了一个简单样式的验证码
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: imgcode.php 2099 2009-01-18 20:43:39Z dualface $
+ * @version $Id: imgcode.php 2524 2009-05-27 05:30:30Z jerry $
  * @package helper
  */
 class Helper_ImgCodeSimple
@@ -320,7 +320,7 @@ class Helper_ImgCodeSimple
         // 根据选项确定绘图选项
         $padding = intval($this->_options['padding']);
         if ($padding < 0) { $padding = 0; }
-        $color = $this->_options['color'];
+        $font_color = $this->_options['color'];
         $bgcolor = $this->_options['bgcolor'];
         $border = $this->_options['border'];
         $bdcolor = $this->_options['bdcolor'];
@@ -365,7 +365,7 @@ class Helper_ImgCodeSimple
 		imagefilledrectangle($img, $border, $border, $width - $border - 1, $height - $border - 1, $color);
 
 		// 绘制文字
-		list($r, $g, $b) = Helper_ImgCode::hex2rgb($color);
+		list($r, $g, $b) = Helper_ImgCode::hex2rgb($font_color);
 		$color = imagecolorallocate($img, $r, $g, $b);
 
 		for ($i = 0, $max = strlen($code); $i < $max; $i++)
@@ -402,7 +402,9 @@ class Helper_ImgCodeSimple
 		unset($img);
 
 		$output = new QView_Output($filename, $mime, ob_get_clean());
-		$output->enableClientCache(false);
+		$output
+            ->contentDisposition('inline')
+            ->enableClientCache(false);
 
 		return $output;
 	}
@@ -412,7 +414,7 @@ class Helper_ImgCodeSimple
  * Helper_ImgCodeTTF 使用 ttf 字体生成验证码
  *
  * @author YuLei Liao <liaoyulei@qeeyuan.com>
- * @version $Id: imgcode.php 2099 2009-01-18 20:43:39Z dualface $
+ * @version $Id: imgcode.php 2524 2009-05-27 05:30:30Z jerry $
  * @package helper
  */
 class Helper_ImgCodeTTF
@@ -476,6 +478,8 @@ class Helper_ImgCodeTTF
     static protected $_font_list = array
     (
         'alpha_thin.ttf',
+        'DENNE-SKETCHY.ttf',
+        'SurroundingBold.otf',
     );
 
     /**
@@ -561,7 +565,7 @@ class Helper_ImgCodeTTF
         $min_b = $b + 50;
         for ($i = 0, $max = strlen($code); $i < $max; $i++)
         {
-            $arr[$i]['font_size'] = (mt_rand(50, 150) / 100) * $font_size;
+            $arr[$i]['font_size'] = (mt_rand(70, 130) / 100) * $font_size;
             $arr[$i]['angle'] = rand(0, $max_angle) - $max_angle / 2;
             list($r, $g, $b) = $color_arr;
             $r = ($r + rand(0, 2550)) % (255 - $min_r) + $min_r;
