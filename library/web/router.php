@@ -1026,14 +1026,14 @@ class QRouter
         // 将规则中指定了默认值的变量添加到变量列表中
         foreach ($rule['defaults'] as $varname => $value)
         {
+        	
             $route['varnames'][$varname] = $value;
             $route['defaults'][$varname] = true;
         }
-
         // 将 UDI 中的变量添加到列表
         foreach ($this->_udi_parts as $varname => $value)
         {
-            if (empty($route['varnames'][$varname]))
+            if (empty($route['varnames'][$varname]) && in_array($varname, array(QContext::UDI_MODULE, QContext::UDI_NAMESPACE)))
             {
                 $route['varnames'][$varname] = $value;
                 $route['defaults'][$varname] = true;

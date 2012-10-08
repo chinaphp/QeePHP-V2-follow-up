@@ -55,7 +55,7 @@ class QContext implements ArrayAccess
     // 默认控制器
     const UDI_DEFAULT_CONTROLLER = 'default';
     // 默认动作
-    const UDI_DEFAULT_ACTION     = '';
+    const UDI_DEFAULT_ACTION     = 'index';
     // 默认的模块
     const UDI_DEFAULT_MODULE     = 'default';
     // 默认的名字空间
@@ -209,7 +209,6 @@ class QContext implements ArrayAccess
             $keys = array_combine($keys, $keys);
             $keys = array_change_key_case($keys);
         }
-
         $udi = array();
         $udi[self::UDI_CONTROLLER] = (isset($keys[self::UDI_CONTROLLER]))
                                      ? $_GET[$keys[self::UDI_CONTROLLER]] : null;
@@ -1332,6 +1331,7 @@ class QContext implements ArrayAccess
         {
             $udi[self::UDI_ACTION] = self::UDI_DEFAULT_ACTION;
         }
+		if(self::$_url_mode == self::URL_MODE_STANDARD)
         foreach (self::$_udi_defaults as $key => $value)
         {
             if (empty($udi[$key]))
