@@ -1156,8 +1156,9 @@ class QContext implements ArrayAccess
             }
         }
         if(!is_array($params)) $params = array();
-
-        // 处理 $opts
+		
+		
+        //*/ 处理 $opts
         if (is_array($opts))
         {
             $mode   = !empty($opts['mode']) ? $opts['mode'] : self::$_url_mode;
@@ -1174,25 +1175,19 @@ class QContext implements ArrayAccess
             $url    = $base_uri;
             $script = $this->scriptName();
         }
-
+		//*/
+		
+		/**
+		 *  匹配
+		 */
         if (!is_null($this->_router) && $mode != self::URL_MODE_STANDARD)
         {
             // 使用路由生成 URL
             $params = array_merge($params, $udi);
-            $path = $this->_router->url($params, $route_name);
-            if (self::$_url_mode == self::URL_MODE_PATHINFO && $path != '/')
-            {
-                $url .= $this->scriptName();
-            }
-            else
-            {
-                $url = rtrim($url, '/');
-            }
-			
-            $url .= $path;
-			$match_route_rule = $this->_router->get($this->_router->lastReverseMatchedRouteName());
-			$domain = isset($match_route_rule['domain']) ? ('http://' . $match_route_rule['domain']) : ( Q::ini('app_config/APP_DOMAIN') ? ('http://www.' . Q::ini('app_config/APP_DOMAIN')) : '' );
-			$url = $domain . $url;
+            $url = $this->_router->url($params, $route_name, array(
+            	'base_path' => $url,
+            	'script' => self::$_url_mode == self::URL_MODE_PATHINFO ? $script : ''
+			));
         }
         else
         {

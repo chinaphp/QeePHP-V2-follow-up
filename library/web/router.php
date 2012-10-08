@@ -204,10 +204,12 @@ class QRouter
         $path_parts = explode($this->_part_delimiter, trim($path, $this->_part_delimiter));
 
         $this->_matched_route_name = null;
+		
         foreach ($this->_routes as $route_name => $route)
         {
-        	
-			if(!$this->_matchDomain($route))
+			
+			$domain_result = $this->_matchDomain($route);
+			if( $domain_result === false )
 			{
 				continue;
 			}
@@ -220,9 +222,11 @@ class QRouter
             {
                 $result = $this->_matchRegexRoute($route, $path);
             }
-
+			
             if ($result !== false)
             {
+				$result = array_merge($result, $domain_result);
+				
                 $this->_matched_route_name = $route_name;
                 foreach ($this->_udi_parts as $varname => $value)
                 {
@@ -253,7 +257,7 @@ class QRouter
      *
      * @return string
      */
-    function url(array $url_args, $route_name = null)
+    function url(array $url_args, $route_name = null, $opts = array('base_path' => '/', 'script' => 'index.php'))
     {
         // 补齐 UDI 参数
         foreach ($this->_udi_parts as $varname => $default_value)
@@ -263,28 +267,39 @@ class QRouter
                 $url_args[$varname] = $default_value;
             }
         }
-
+		
         if ($route_name && isset($this->_routes[$route_name]))
         {
+            	
+			$base_uri = $this->_reverseMatchDomain($url_args, $this->_routes[$route_name], $opts);
+			if($base_uri === FALSE)
+			{
+				continue;
+			}
             // 用指定路由解析
             $url = $this->_reverseMatch($this->_routes[$route_name], $url_args);
             if ($url !== false)
             {
                 $this->_reverse_matched_route_name = $route_name;
-				//$domain = isset($this->_routes[$route_name]['domain']) ? ('http://' . $this->_routes[$route_name]['domain']) : '';
-                return $url;
+                return rtrim($base_uri, '/') . $url;
             }
         }
         else
         {
-            foreach ($this->_routes as $route_name => $route)
+            foreach ($this->_routes as $name => $route)
             {
+            	
+				$base_uri = $this->_reverseMatchDomain($url_args, $route, $opts);
+				if($base_uri === FALSE)
+				{
+					continue;
+				}
+            	
                 $url = $this->_reverseMatch($route, $url_args);
                 if ($url !== false)
                 {
-                    $this->_reverse_matched_route_name = $route_name;
-					//$domain = isset($this->_routes[$route_name]['domain']) ? ('http://' . $this->_routes[$route_name]['domain']) : '';
-                    return $url;
+                    $this->_reverse_matched_route_name = $name;
+                    return rtrim($base_uri, '/') . $url;
                 }
             }
         }
@@ -310,19 +325,46 @@ class QRouter
         return $this->_reverse_matched_route_name;
     }
 	
+	
 	protected function _matchDomain($route)
 	{
-		if($route['domain'] !== NULL)
-		{
-			$sub_dmoain = substr($_SERVER['HTTP_HOST'], strlen($_SERVER['HTTP_HOST']) - strlen($route['domain']));
-			if( $sub_dmoain == $route['domain'])
-			{
-				return true;
-			}
-			return false;
-		}
-		return true;
+		$app_domain = trim(Q::ini('app_config/DOMAIN'), '.');
 		
+		if(!$app_domain || !isset($route['domain']) || !is_array($route['domain']))
+		{
+			return array();
+		}
+		$result = array();
+		
+		$sub_domain = $_SERVER['HTTP_HOST'];
+		
+		if($route['domain']['prefix'] === NULL)
+		{
+			$sub_domain = str_replace($app_domain, '', $sub_domain);
+			$sub_domain = trim($sub_domain, '.');
+			$allow_domain = '~^(www|)$~';
+		}
+		else
+		{
+			$allow_domain = $route['domain']['prefix'];
+			$allow_domain = "~^{$allow_domain}$~";
+			$sub_domain = str_replace($app_domain, '', $sub_domain);
+			$sub_domain = trim($sub_domain, '.');
+		}
+		
+		
+		if(preg_match($allow_domain, $sub_domain))
+		{
+			if(isset($route['domain']['mapping']) && strlen($route['domain']['mapping']) > 0)
+			{
+				$result[$route['domain']['mapping']] = $sub_domain;
+			}
+			return $result;
+		}
+		
+		
+		
+		return false;
 	} 
 
     /**
@@ -371,6 +413,7 @@ class QRouter
             switch ($part_type)
             {
             case self::PARTTYPE_VAR:
+				$value = false;
                 $varname = $route['vars'][$pos];
                 if (isset($path[$pos]))
                 {
@@ -380,9 +423,9 @@ class QRouter
                     {
                         return false;
                     }
-                    $value = $path[$pos];
+                    $value = $path[$pos] ? $path[$pos] : ( $route['defaults'][$varname] ? $route['varnames'][$varname] : $path[$pos] );
                 }
-                elseif ($route['defaults'][$varname])
+				else if ($route['defaults'][$varname])
                 {
                     // 如果该变量有默认值，则使用默认值
                     $value = $route['varnames'][$varname];
@@ -463,6 +506,54 @@ class QRouter
 
         return $values;
     }
+
+
+	public function _reverseMatchDomain($url_args, $route, $opt)
+	{
+		$app_domain = trim(Q::ini('app_config/DOMAIN'), '.');
+		$domain = $route['domain']['prefix'];
+		$current_domain = $_SERVER['HTTP_HOST'];
+		
+		if(is_array($route['domain']))
+		{
+			if(isset($route['domain']['mapping']))
+			{
+				$p = $route['domain']['prefix'];
+				$p = "~^{$p}$~";
+				if( isset($url_args[$route['domain']['mapping']]) && preg_match($p, $url_args[$route['domain']['mapping']]))
+				{
+					$base_uri = $url_args[$route['domain']['mapping']];
+					$base_uri .= ".{$app_domain}";
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else
+			{
+				$base_uri = $route['domain']['prefix'];
+				$base_uri .= ".{$app_domain}";
+			}
+			$protocol = ( isset($opt['protocol']) && $opt['protocol'] ) ? $opt['protocol'] : 'http://';
+			$base_uri = "{$protocol}{$base_uri}";
+		}
+		else
+		{
+			$base_uri = $app_domain ? "www.{$app_domain}" : '';
+			if($base_uri == $current_domain)
+			{
+				$base_uri = '';
+			}
+			else
+			{
+				$protocol = ( isset($opt['protocol']) && $opt['protocol'] ) ? $opt['protocol'] : 'http://';
+				$base_uri = "{$protocol}{$base_uri}";
+			}
+			$base_uri .= $opt['base_path'] . $opt['script'];
+		}
+		return $base_uri;
+	}
 
     /**
      * 根据参数创建匹配该路由的 URL，成功返回 URL 字符串，失败返回 FALSE
@@ -712,8 +803,13 @@ class QRouter
                 {
                     if ((string)$url_args[$varname] != (string)$default_value || !$has_default)
                     {
+                    	if( ! is_array($route['domain']) || ! isset($route['domain']['mapping']) || $route['domain']['mapping'] != $varname)
+						{
+							//Domain 的mapping 也参与计算~
+							return false;
+						}
                         // 2.2 如果包含但与默认值不同，或者没有提供默认值，则比对失败
-                        return false;
+                        //return false;
                     }
 
                     $valid[$varname] = $url_args[$varname];
@@ -949,7 +1045,7 @@ class QRouter
         $use_static_optional = false;
         foreach ($parts as $pos => $part)
         {
-            if ($part{0} == $this->_var_prefix)
+            if ( $part{0} == $this->_var_prefix)
             {
                 // 从分割后的组成部分中提取出变量名
                 $varname = substr($part, 1);

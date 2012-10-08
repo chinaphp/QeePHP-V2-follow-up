@@ -426,6 +426,8 @@ class Helper_ImgCodeTTF
      */
     protected $_options = array
     (
+        'code_type'         => 2,
+
         // 验证码长度
         'code_length'       => 6,
 
@@ -500,10 +502,21 @@ class Helper_ImgCodeTTF
      */
     function generateCode()
     {
+        $code_type = intval($this->_options['code_type']);
         $code_length = intval($this->_options['code_length']);
         if ($code_length <= 0) { $code_length = 4; }
-        $seed = '346789ABCDEFGHJKLMN346789PQRTUVWXYabcdefghj346789klmnpqrt346789uvwxy';
 
+        switch ($code_type)
+        {
+        case 0:
+            $seed = '0123456789';
+            break;
+        case 1:
+            $seed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+            break;
+        default:
+            $seed = '346789ABCDEFGHJKLMNPQRTUVWXYabcdefghjklmnpqrtuvwxy';
+        }
         $code = '';
         $len = strlen($seed) - 1;
         for ($i = 0; $i < $code_length; $i++)

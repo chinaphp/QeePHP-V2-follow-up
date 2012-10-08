@@ -66,7 +66,13 @@ abstract class Helper_Image
             throw new Q_NotImplementedException(__('imagecreateform' . $fileext));
         }
 
-        $handle = call_user_func($ext2functions[$fileext], $filename);
+        $handle = @call_user_func($ext2functions[$fileext], $filename);
+		
+		if(!$handle)
+		{
+			return false;
+		}
+		
         return new Helper_ImageGD($handle);
     }
 

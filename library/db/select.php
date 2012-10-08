@@ -1383,7 +1383,7 @@ class QDB_Select
      *
      * @param array|string $included_links
      *
-     * @return mixed
+     * @return QColl
      */
     function getAll($included_links = null)
     {
