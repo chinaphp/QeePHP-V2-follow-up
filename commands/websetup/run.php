@@ -35,6 +35,7 @@ class WebSetup
         Q::import($dir . '/app/model');
         Q::import($managed_app_config['QEEPHP_DIR'] . '/extended');
 
+        //Q::replaceIni($managed_app_ini);
         Q::replaceIni('managed_app_config', $managed_app_config);
         Q::replaceIni('managed_app_ini',    $managed_app_ini);
     }

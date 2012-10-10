@@ -200,7 +200,7 @@ class QContext implements ArrayAccess
                 }
             }
         }
-        self::$_url_mode = $url_mode;
+        self::$_url_mode = $url_mode ? $url_mode : self::URL_MODE_STANDARD;
 
         // 从 $_GET 中提取请求参数
         $keys = array_keys($_GET);
@@ -1175,7 +1175,6 @@ class QContext implements ArrayAccess
             $script = $this->scriptName();
         }
 		//*/
-		
 		/**
 		 *  匹配
 		 */
@@ -1203,7 +1202,6 @@ class QContext implements ArrayAccess
                 $url .= '?' . http_build_query($params, '', '&');
             }
         }
-
         return $url;
     }
 

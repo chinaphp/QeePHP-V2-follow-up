@@ -547,7 +547,7 @@ class QRouter
 			}
 			else
 			{
-				$protocol = ( isset($opt['protocol']) && $opt['protocol'] ) ? $opt['protocol'] : 'http://';
+				$protocol = ( isset($opt['protocol']) && $opt['protocol'] ) ? $opt['protocol'] : '';
 				$base_uri = "{$protocol}{$base_uri}";
 			}
 			$base_uri .= $opt['base_path'] . $opt['script'];
