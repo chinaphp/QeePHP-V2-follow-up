@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 .project
 .settings
+=======
+
+.DS_Store
+>>>>>>> Ignore mac file DS_Store
